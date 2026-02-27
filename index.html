@@ -63,6 +63,7 @@
                     🧮 Simulador de Preços
                 </button>
                 <span class="bg-orange-800 px-3 py-1 rounded text-sm font-bold animate-pulse">✓ v3.22</span>
+                <button onclick="showAppsScriptCode()" class="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm">📜 Ver Código Apps Script</button>
             </div>
         </div>
     </nav>
@@ -190,6 +191,45 @@
                     </button>
                     <button onclick="closeSimulator()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-bold">Fechar</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Código Apps Script -->
+    <div id="appsScriptModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800">📜 Código do Google Apps Script</h3>
+                <button onclick="closeAppsScriptModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded">
+                <p class="text-sm text-yellow-800"><strong>⚠️ IMPORTANTE:</strong> Cole este código em AMBAS as planilhas (Análises Simples e Comparativos)</p>
+            </div>
+            
+            <div class="mb-4">
+                <button onclick="copyAppsScriptCode()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold">📋 Copiar Código</button>
+            </div>
+            
+            <pre id="appsScriptCode" class="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-x-auto max-h-[60vh]" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
+            
+            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <h4 class="font-bold text-blue-800 mb-2">📝 Instruções:</h4>
+                <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
+                    <li>Crie uma planilha no Google Sheets</li>
+                    <li>Vá em Extensões → Apps Script</li>
+                    <li>Apague o código padrão e cole o código acima</li>
+                    <li>Salve (Ctrl+S)</li>
+                    <li>Clique em Implantar → Nova implantação</li>
+                    <li>Selecione "App da Web"</li>
+                    <li>Configure: Executar como "Eu" e Acesso "Qualquer pessoa"</li>
+                    <li>Clique em Implantar e copie a URL</li>
+                    <li>Cole a URL no campo CLOUD_CONFIG no início do index.html</li>
+                </ol>
+            </div>
+            
+            <div class="mt-4 text-right">
+                <button onclick="closeAppsScriptModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Fechar</button>
             </div>
         </div>
     </div>
@@ -638,25 +678,47 @@
 
         // ========== PARÂMETROS DE CÁLCULO ==========
         async function loadCalcParamsFromCloud() {
+            console.log('🔄 Tentando carregar parâmetros da nuvem...');
+            
             if (!CLOUD_CONFIG.URL_SIMPLE) {
+                console.log('⚠️ URL_SIMPLE não configurada, usando local');
                 loadCalcParamsFromLocal();
                 return;
             }
             
             try {
-                const response = await fetch(CLOUD_CONFIG.URL_SIMPLE + '?action=loadConfig&key=calcParams');
-                const result = await response.json();
+                const url = CLOUD_CONFIG.URL_SIMPLE + '?action=loadConfig&key=calcParams';
+                console.log('📡 Buscando:', url);
+                
+                const response = await fetch(url);
+                const text = await response.text();
+                console.log('📥 Resposta bruta:', text);
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch(e) {
+                    console.log('⚠️ Resposta não é JSON válido');
+                    loadCalcParamsFromLocal();
+                    return;
+                }
                 
                 if (result && result.data) {
-                    calcParams = JSON.parse(result.data);
-                    console.log('✅ Parâmetros carregados da nuvem:', calcParams);
-                    // Também salvar localmente como backup
-                    localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
+                    try {
+                        calcParams = JSON.parse(result.data);
+                        console.log('✅ Parâmetros carregados da nuvem:', calcParams);
+                        // Também salvar localmente como backup
+                        localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
+                    } catch(e) {
+                        console.log('⚠️ Erro ao parsear data:', e);
+                        loadCalcParamsFromLocal();
+                    }
                 } else {
+                    console.log('⚠️ Nenhum parâmetro na nuvem, usando local. Resultado:', result);
                     loadCalcParamsFromLocal();
                 }
             } catch(e) {
-                console.log('⚠️ Não foi possível carregar da nuvem, usando local:', e);
+                console.log('❌ Erro ao carregar da nuvem:', e);
                 loadCalcParamsFromLocal();
             }
         }
@@ -740,6 +802,7 @@
             
             // Salvar localmente
             localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
+            console.log('💾 Parâmetros salvos localmente:', calcParams);
             
             // Salvar na nuvem se URL configurada
             if (CLOUD_CONFIG.URL_SIMPLE) {
@@ -750,15 +813,35 @@
                         data: JSON.stringify(calcParams)
                     };
                     
-                    await fetch(CLOUD_CONFIG.URL_SIMPLE, {
+                    console.log('☁️ Salvando na nuvem:', payload);
+                    
+                    const response = await fetch(CLOUD_CONFIG.URL_SIMPLE, {
                         method: 'POST',
                         mode: 'cors',
+                        redirect: 'follow',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
                     });
                     
-                    alert('✅ Parâmetros salvos localmente e na nuvem!');
+                    const text = await response.text();
+                    console.log('📥 Resposta do servidor:', text);
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(text);
+                    } catch(e) {
+                        throw new Error('Resposta inválida do servidor');
+                    }
+                    
+                    if (result.success) {
+                        alert('✅ Parâmetros salvos localmente e na nuvem!');
+                    } else if (result.error) {
+                        throw new Error(result.error);
+                    } else {
+                        alert('✅ Parâmetros salvos localmente!\n⚠️ Resposta inesperada da nuvem.');
+                    }
                 } catch(e) {
+                    console.log('❌ Erro ao salvar na nuvem:', e);
                     alert('✅ Parâmetros salvos localmente.\n⚠️ Não foi possível salvar na nuvem: ' + e.message);
                 }
             } else {
@@ -780,6 +863,248 @@
             document.getElementById('calcDiv07').value = 0.8335;
             document.getElementById('calcDivCT').value = 0.9;
             updateCalcPreview();
+        }
+
+        // ========== CÓDIGO APPS SCRIPT ==========
+        const APPS_SCRIPT_CODE = `// ============================================
+// CENTRAL MESH - API v3.22
+// Cole este código em AMBAS as planilhas
+// ============================================
+
+const SHEET_DATA = 'Dados';
+const SHEET_CONFIG = 'Config';
+
+function doGet(e) {
+  const action = e.parameter.action || 'list';
+  
+  try {
+    let result;
+    
+    switch(action) {
+      case 'list':
+        result = listAnalyses();
+        break;
+      case 'load':
+        result = loadAnalysis(e.parameter.id);
+        break;
+      case 'delete':
+        result = deleteAnalysis(e.parameter.id);
+        break;
+      case 'loadConfig':
+        result = loadConfig(e.parameter.key);
+        break;
+      default:
+        result = { error: 'Ação GET inválida: ' + action };
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({ error: 'GET Error: ' + error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const action = payload.action || 'save';
+    
+    let result;
+    
+    if (action === 'saveConfig') {
+      result = saveConfig(payload.key, payload.data);
+    } else {
+      result = saveAnalysis(payload);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({ error: 'POST Error: ' + error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ========== CONFIGURAÇÕES ==========
+function ensureConfigSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_CONFIG);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_CONFIG);
+    sheet.appendRow(['KEY', 'DATA', 'UPDATED']);
+    sheet.getRange(1, 1, 1, 3).setBackground('#4285f4').setFontColor('#ffffff').setFontWeight('bold');
+  }
+  
+  return sheet;
+}
+
+function loadConfig(key) {
+  const sheet = ensureConfigSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      return { key: data[i][0], data: data[i][1], updated: data[i][2] };
+    }
+  }
+  
+  return { key: key, data: null };
+}
+
+function saveConfig(key, value) {
+  const sheet = ensureConfigSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  const row = [key, value, new Date().toISOString()];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      sheet.getRange(i + 1, 1, 1, 3).setValues([row]);
+      return { success: true, message: 'Config atualizada!' };
+    }
+  }
+  
+  sheet.appendRow(row);
+  return { success: true, message: 'Config criada!' };
+}
+
+// ========== ANÁLISES ==========
+function ensureDataSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_DATA);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_DATA);
+  }
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['ID', 'Nome', 'Arquivos', 'Qtd', 'Data', 'Usuario', 'DataJSON', 'CurrentJSON', 'NewJSON']);
+    sheet.getRange(1, 1, 1, 9).setBackground('#4285f4').setFontColor('#ffffff').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  
+  return sheet;
+}
+
+function listAnalyses() {
+  const sheet = ensureDataSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) return [];
+  
+  const analyses = [];
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    
+    analyses.push({
+      id: data[i][0],
+      name: data[i][1],
+      fileNames: data[i][2],
+      itemCount: data[i][3],
+      timestamp: data[i][4],
+      userName: data[i][5]
+    });
+  }
+  
+  analyses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return analyses;
+}
+
+function loadAnalysis(id) {
+  const sheet = ensureDataSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      return {
+        id: data[i][0],
+        name: data[i][1],
+        fileNames: data[i][2],
+        itemCount: data[i][3],
+        timestamp: data[i][4],
+        userName: data[i][5],
+        data: data[i][6] ? JSON.parse(data[i][6]) : [],
+        currentData: data[i][7] ? JSON.parse(data[i][7]) : [],
+        newData: data[i][8] ? JSON.parse(data[i][8]) : []
+      };
+    }
+  }
+  
+  return { error: 'Análise não encontrada' };
+}
+
+function saveAnalysis(payload) {
+  const sheet = ensureDataSheet();
+  
+  const id = payload.id || Utilities.getUuid();
+  const row = [
+    id,
+    payload.name || payload.fileNames || 'Sem nome',
+    payload.fileNames || '',
+    payload.itemCount || 0,
+    new Date().toISOString(),
+    payload.userName || 'Anônimo',
+    JSON.stringify(payload.data || []),
+    JSON.stringify(payload.currentData || []),
+    JSON.stringify(payload.newData || [])
+  ];
+  
+  const data = sheet.getDataRange().getValues();
+  let found = false;
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+      found = true;
+      break;
+    }
+  }
+  
+  if (!found) {
+    sheet.appendRow(row);
+  }
+  
+  return { success: true, id: id };
+}
+
+function deleteAnalysis(id) {
+  const sheet = ensureDataSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  
+  return { error: 'Análise não encontrada' };
+}
+
+// Função de teste
+function testar() {
+  Logger.log('Teste OK!');
+  Logger.log('Análises: ' + listAnalyses().length);
+  Logger.log('Config calcParams: ' + JSON.stringify(loadConfig('calcParams')));
+}`;
+
+        function showAppsScriptCode() {
+            document.getElementById('appsScriptCode').textContent = APPS_SCRIPT_CODE;
+            document.getElementById('appsScriptModal').classList.remove('hidden');
+        }
+        
+        function closeAppsScriptModal() {
+            document.getElementById('appsScriptModal').classList.add('hidden');
+        }
+        
+        function copyAppsScriptCode() {
+            navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(() => {
+                alert('✅ Código copiado para a área de transferência!');
+            });
         }
 
         // ========== SIMULADOR DE PREÇOS ==========
