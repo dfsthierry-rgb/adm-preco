@@ -1,0 +1,2447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Mesh - Gestor de Preços v3.21</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+        }
+        .hide-for-vendors { }
+        .vendors-mode .hide-for-vendors { display: none !important; }
+        .price-input {
+            transition: all 0.2s;
+        }
+        .price-input:focus {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
+        }
+        .price-input.changed {
+            background-color: #fef3c7 !important;
+            border-color: #f59e0b !important;
+        }
+        .price-input.empty {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+        }
+        .row-empty {
+            background-color: #fef2f2 !important;
+        }
+        .row-changed {
+            background-color: #fffbeb !important;
+        }
+        .cloud-btn {
+            transition: all 0.2s;
+        }
+        .cloud-btn:hover {
+            transform: translateY(-2px);
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-orange-600 text-white p-4 no-print">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Central Mesh | Gestor de Preços</h1>
+            <div class="flex items-center gap-4">
+                <button onclick="openCalcConfig()" class="bg-orange-700 hover:bg-orange-800 px-3 py-1 rounded text-sm flex items-center gap-1">
+                    ⚙️ Parâmetros de Cálculo
+                </button>
+                <button onclick="openSimulator()" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm flex items-center gap-1">
+                    🧮 Simulador de Preços
+                </button>
+                <button onclick="openCloudConfig()" class="bg-orange-700 hover:bg-orange-800 px-3 py-1 rounded text-sm flex items-center gap-1">
+                    ☁️ Configurar Nuvem
+                </button>
+                <span class="bg-orange-800 px-3 py-1 rounded text-sm font-bold animate-pulse">✓ v3.21</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Modal do Simulador de Preços -->
+    <div id="simulatorModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800">🧮 Simulador de Preços</h3>
+                <button onclick="closeSimulator()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                <p class="text-sm text-green-800 mb-3"><strong>💵 Digite o valor em $/m² para calcular todos os preços:</strong></p>
+                <div class="flex items-center gap-4">
+                    <div class="flex-1 max-w-xs">
+                        <label class="block text-xs font-bold text-green-700 mb-1">Valor $/m²</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 font-bold">$</span>
+                            <input type="number" step="0.01" id="simInputPrice" value="100" 
+                                oninput="calculateSimulation()"
+                                class="w-full p-3 pl-8 border-2 border-green-400 rounded-lg text-center font-bold text-2xl text-green-700 focus:ring-4 focus:ring-green-200 focus:border-green-500">
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 mb-1">Fator Base</p>
+                        <p id="simFactorBase" class="text-lg font-bold text-orange-600">9.184</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabela de Resultados -->
+            <div class="mb-6">
+                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">📊</span>
+                    Preços Calculados
+                </h4>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-orange-600 text-white">
+                                <th class="p-2 border border-orange-700 text-center">Faixa</th>
+                                <th class="p-2 border border-orange-700 text-center">Tipo</th>
+                                <th class="p-2 border border-orange-700 text-center">Markup</th>
+                                <th class="p-2 border border-orange-700 text-center">Divisor</th>
+                                <th class="p-2 border border-orange-700 text-center">Fórmula</th>
+                                <th class="p-2 border border-orange-700 text-center bg-orange-700 font-bold">PREÇO FINAL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="simResultsBody" class="text-center">
+                            <!-- Preenchido via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Resumo Visual -->
+            <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <p class="text-xs text-red-600 font-bold mb-1">18% CORTE</p>
+                    <p id="simCard18CRT" class="text-xl font-bold text-red-700">-</p>
+                </div>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <p class="text-xs text-red-600 font-bold mb-1">18% ROLO</p>
+                    <p id="simCard18ROL" class="text-xl font-bold text-red-700">-</p>
+                </div>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <p class="text-xs text-yellow-600 font-bold mb-1">12% CORTE</p>
+                    <p id="simCard12CRT" class="text-xl font-bold text-yellow-700">-</p>
+                </div>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <p class="text-xs text-yellow-600 font-bold mb-1">12% ROLO</p>
+                    <p id="simCard12ROL" class="text-xl font-bold text-yellow-700">-</p>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <p class="text-xs text-green-600 font-bold mb-1">7% CORTE</p>
+                    <p id="simCard7CRT" class="text-xl font-bold text-green-700">-</p>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <p class="text-xs text-green-600 font-bold mb-1">7% ROLO</p>
+                    <p id="simCard7ROL" class="text-xl font-bold text-green-700">-</p>
+                </div>
+                <div class="bg-gray-100 border border-gray-300 rounded-lg p-3 text-center">
+                    <p class="text-xs text-gray-600 font-bold mb-1">CT CORTE</p>
+                    <p id="simCardCTCRT" class="text-xl font-bold text-gray-700">-</p>
+                </div>
+                <div class="bg-gray-100 border border-gray-300 rounded-lg p-3 text-center">
+                    <p class="text-xs text-gray-600 font-bold mb-1">CT ROLO</p>
+                    <p id="simCardCTROL" class="text-xl font-bold text-gray-700">-</p>
+                </div>
+            </div>
+            
+            <!-- Fórmula Detalhada -->
+            <div class="mb-4 p-3 bg-gray-800 rounded-lg text-white">
+                <h4 class="font-bold mb-2 text-orange-400">📐 Fórmula Utilizada:</h4>
+                <p class="text-xs font-mono text-green-400 mb-2">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div>
+                        <span class="text-gray-400">Fator1:</span>
+                        <span id="simShowF1" class="text-white font-bold ml-1">2</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Fator2:</span>
+                        <span id="simShowF2" class="text-white font-bold ml-1">5.60</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Fator3:</span>
+                        <span id="simShowF3" class="text-white font-bold ml-1">0.82</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Base:</span>
+                        <span id="simShowBase" class="text-green-400 font-bold ml-1">9.184</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-between">
+                <button onclick="openCalcConfig(); closeSimulator();" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">
+                    ⚙️ Alterar Parâmetros
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="copySimulationResult()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold">
+                        📋 Copiar Resultados
+                    </button>
+                    <button onclick="closeSimulator()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-bold">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Parâmetros de Cálculo -->
+    <div id="calcConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800">⚙️ Parâmetros de Cálculo</h3>
+                <button onclick="closeCalcConfig()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <p class="text-sm text-blue-800"><strong>📐 Fórmula Base:</strong></p>
+                <p class="text-xs text-blue-700 mt-1 font-mono">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
+            </div>
+            
+            <!-- Fatores Multiplicadores -->
+            <div class="mb-6">
+                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">1</span>
+                    Fatores Multiplicadores Base
+                </h4>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Fator 1</label>
+                        <input type="number" step="0.01" id="calcFactor1" value="2" class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg">
+                        <p class="text-xs text-gray-400 mt-1">Padrão: 2</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Fator 2</label>
+                        <input type="number" step="0.01" id="calcFactor2" value="5.60" class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg">
+                        <p class="text-xs text-gray-400 mt-1">Padrão: 5.60</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Fator 3</label>
+                        <input type="number" step="0.01" id="calcFactor3" value="0.82" class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg">
+                        <p class="text-xs text-gray-400 mt-1">Padrão: 0.82</p>
+                    </div>
+                </div>
+                <div class="mt-2 p-2 bg-gray-100 rounded text-center">
+                    <span class="text-sm text-gray-600">Fator Base Comum = </span>
+                    <span id="commonFactorPreview" class="font-bold text-orange-600">9.184</span>
+                </div>
+            </div>
+            
+            <!-- Markups Corte/Rolo -->
+            <div class="mb-6">
+                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">2</span>
+                    Markups (Corte vs Rolo)
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-3 bg-orange-50 border border-orange-200 rounded">
+                        <label class="block text-xs font-bold text-orange-700 mb-1">Markup CORTE (CRT)</label>
+                        <input type="number" step="0.01" id="calcMarkupCorte" value="1.35" class="w-full p-2 border border-orange-300 rounded text-center font-bold text-lg">
+                        <p class="text-xs text-gray-400 mt-1">Padrão: 1.35</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 border border-blue-200 rounded">
+                        <label class="block text-xs font-bold text-blue-700 mb-1">Markup ROLO (ROL)</label>
+                        <input type="number" step="0.01" id="calcMarkupRolo" value="1.30" class="w-full p-2 border border-blue-300 rounded text-center font-bold text-lg">
+                        <p class="text-xs text-gray-400 mt-1">Padrão: 1.30</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Divisores por Faixa de Imposto -->
+            <div class="mb-6">
+                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">3</span>
+                    Divisores por Faixa de Imposto
+                </h4>
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="p-3 bg-red-50 border border-red-200 rounded">
+                        <label class="block text-xs font-bold text-red-700 mb-1 text-center">18%</label>
+                        <input type="number" step="0.0001" id="calcDiv18" value="0.7235" class="w-full p-2 border border-red-300 rounded text-center font-bold">
+                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.7235</p>
+                    </div>
+                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                        <label class="block text-xs font-bold text-yellow-700 mb-1 text-center">12%</label>
+                        <input type="number" step="0.0001" id="calcDiv12" value="0.7835" class="w-full p-2 border border-yellow-300 rounded text-center font-bold">
+                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.7835</p>
+                    </div>
+                    <div class="p-3 bg-green-50 border border-green-200 rounded">
+                        <label class="block text-xs font-bold text-green-700 mb-1 text-center">7%</label>
+                        <input type="number" step="0.0001" id="calcDiv07" value="0.8335" class="w-full p-2 border border-green-300 rounded text-center font-bold">
+                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.8335</p>
+                    </div>
+                    <div class="p-3 bg-gray-100 border border-gray-300 rounded">
+                        <label class="block text-xs font-bold text-gray-700 mb-1 text-center">CT</label>
+                        <input type="number" step="0.0001" id="calcDivCT" value="0.9" class="w-full p-2 border border-gray-400 rounded text-center font-bold">
+                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.9</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview da Fórmula -->
+            <div class="mb-6 p-4 bg-gray-800 rounded-lg text-white">
+                <h4 class="font-bold mb-2 text-orange-400">📊 Exemplo de Cálculo ($/m² = 100):</h4>
+                <div class="grid grid-cols-2 gap-2 text-xs font-mono" id="calcPreview">
+                    <div>18% CRT: <span class="text-green-400" id="preview18CRT">-</span></div>
+                    <div>18% ROL: <span class="text-green-400" id="preview18ROL">-</span></div>
+                    <div>12% CRT: <span class="text-yellow-400" id="preview12CRT">-</span></div>
+                    <div>12% ROL: <span class="text-yellow-400" id="preview12ROL">-</span></div>
+                    <div>7% CRT: <span class="text-blue-400" id="preview7CRT">-</span></div>
+                    <div>7% ROL: <span class="text-blue-400" id="preview7ROL">-</span></div>
+                    <div>CT CRT: <span class="text-gray-400" id="previewCTCRT">-</span></div>
+                    <div>CT ROL: <span class="text-gray-400" id="previewCTROL">-</span></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-between">
+                <button onclick="resetCalcConfig()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">
+                    ↩️ Restaurar Padrões
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeCalcConfig()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">Cancelar</button>
+                    <button onclick="saveCalcConfig()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded text-sm font-bold">💾 Salvar Local</button>
+                    <button onclick="saveCalcConfigToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm font-bold">☁️ Salvar na Nuvem (Todos)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuração da Nuvem -->
+    <div id="cloudConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800">☁️ Configuração Google Sheets</h3>
+                <button onclick="closeCloudConfig()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <p class="text-sm font-bold text-amber-800 mb-2">⚠️ Você precisa criar DUAS planilhas separadas:</p>
+                    <ul class="text-sm text-amber-700 list-disc ml-4">
+                        <li><strong>Planilha 1:</strong> Para Análises Simples</li>
+                        <li><strong>Planilha 2:</strong> Para Comparativos de Tabelas</li>
+                    </ul>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 mb-4">
+                    <!-- URL Análise Simples -->
+                    <div class="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                        <label class="block text-sm font-bold text-blue-800 mb-2">📊 URL - Análise Simples:</label>
+                        <input type="text" id="googleScriptUrlSimple" placeholder="https://script.google.com/macros/s/.../exec" 
+                            class="w-full p-2 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-blue-600 mt-1">Planilha para análises de tabela única</p>
+                    </div>
+                    
+                    <!-- URL Comparativo -->
+                    <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+                        <label class="block text-sm font-bold text-green-800 mb-2">🔄 URL - Comparativo:</label>
+                        <input type="text" id="googleScriptUrlCompare" placeholder="https://script.google.com/macros/s/.../exec" 
+                            class="w-full p-2 border border-green-300 rounded text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <p class="text-xs text-green-600 mt-1">Planilha para comparativos entre tabelas</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2 mb-4">
+                    <label class="text-sm text-gray-700 font-medium">Seu Nome:</label>
+                    <input type="text" id="userName" placeholder="Ex: João Silva" 
+                        class="flex-1 p-2 border border-gray-300 rounded text-sm">
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 border rounded-lg p-4 mb-4">
+                <p class="text-sm font-bold text-gray-700 mb-2">📋 Como configurar (IMPORTANTE: são DUAS planilhas separadas!):</p>
+                
+                <div class="bg-blue-50 border border-blue-300 rounded p-3 mb-3">
+                    <p class="text-sm font-bold text-blue-800 mb-1">📊 PLANILHA 1 - Análise Simples:</p>
+                    <ol class="text-xs text-blue-700 list-decimal ml-4 space-y-0.5">
+                        <li>Crie uma planilha: <strong>"Central Mesh - Análises Simples"</strong></li>
+                        <li>Vá em <strong>Extensões → Apps Script</strong></li>
+                        <li>Cole o código (botão abaixo) e Salve</li>
+                        <li><strong>Implantar → Nova implantação → App da Web</strong></li>
+                        <li>Acesso: <strong>"Qualquer pessoa"</strong> → Implantar</li>
+                        <li>Copie a URL e cole no campo <strong>azul</strong> acima</li>
+                    </ol>
+                </div>
+                
+                <div class="bg-green-50 border border-green-300 rounded p-3 mb-3">
+                    <p class="text-sm font-bold text-green-800 mb-1">🔄 PLANILHA 2 - Comparativos:</p>
+                    <ol class="text-xs text-green-700 list-decimal ml-4 space-y-0.5">
+                        <li>Crie <strong>OUTRA</strong> planilha: <strong>"Central Mesh - Comparativos"</strong></li>
+                        <li>Vá em <strong>Extensões → Apps Script</strong></li>
+                        <li>Cole o <strong>MESMO código</strong> e Salve</li>
+                        <li><strong>Implantar → Nova implantação → App da Web</strong></li>
+                        <li>Acesso: <strong>"Qualquer pessoa"</strong> → Implantar</li>
+                        <li>Copie a URL e cole no campo <strong>verde</strong> acima</li>
+                    </ol>
+                </div>
+                
+                <div class="bg-amber-50 border border-amber-300 rounded p-3">
+                    <p class="text-xs text-amber-800">
+                        <strong>💡 NOTA:</strong> O código é o MESMO para ambas. Cada planilha terá apenas uma aba "Dados" onde os registros serão salvos automaticamente.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="text-center mb-4">
+                <button onclick="showScriptCode()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded shadow">
+                    📄 VER CÓDIGO DO GOOGLE APPS SCRIPT (usar nas duas planilhas)
+                </button>
+            </div>
+            
+            <!-- Área do Código do Script -->
+            <div id="scriptCodeArea" class="hidden mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-sm font-bold text-gray-700">📜 Código do Google Apps Script (use o mesmo para ambas):</p>
+                    <button onclick="copyScriptCode()" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded">📋 Copiar Código</button>
+                </div>
+                <textarea id="scriptCodeText" readonly class="w-full h-64 text-xs font-mono bg-gray-900 text-green-400 p-3 rounded border border-gray-700"></textarea>
+                <button onclick="hideScriptCode()" class="mt-2 text-xs text-gray-500 underline">Ocultar código</button>
+            </div>
+            
+            <div class="flex justify-between">
+                <div class="flex gap-2">
+                    <button onclick="testCloudConnection('simple')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                        🔗 Testar Análise Simples
+                    </button>
+                    <button onclick="testCloudConnection('compare')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                        🔗 Testar Comparativo
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeCloudConfig()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">Cancelar</button>
+                    <button onclick="saveCloudConfig()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-bold">Salvar</button>
+                </div>
+            </div>
+            
+            <div id="cloudTestResult" class="mt-4 hidden"></div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4">
+
+        <!-- ANÁLISES NA NUVEM (SEPARADAS) -->
+        <section id="step-cloud-simple" class="hidden no-print">
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-400 rounded-lg shadow p-4 mb-4">
+                <div class="flex items-center gap-3 mb-3 border-b border-blue-200 pb-2">
+                    <div class="text-2xl">📊</div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-blue-800">Análises Simples na Nuvem</h3>
+                        <p class="text-xs text-blue-600">Tabelas únicas analisadas</p>
+                    </div>
+                    <button onclick="refreshCloudAnalyses('simple')" class="text-blue-600 hover:text-blue-800 text-sm">🔄 Atualizar</button>
+                </div>
+                <div id="cloudSimpleList" class="space-y-2">Carregando...</div>
+            </div>
+        </section>
+
+        <section id="step-cloud-compare" class="hidden no-print">
+            <div class="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow p-4 mb-6">
+                <div class="flex items-center gap-3 mb-3 border-b border-green-200 pb-2">
+                    <div class="text-2xl">🔄</div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-green-800">Comparativos na Nuvem</h3>
+                        <p class="text-xs text-green-600">Comparações entre tabelas</p>
+                    </div>
+                    <button onclick="refreshCloudAnalyses('compare')" class="text-green-600 hover:text-green-800 text-sm">🔄 Atualizar</button>
+                </div>
+                <div id="cloudCompareList" class="space-y-2">Carregando...</div>
+            </div>
+        </section>
+
+        <!-- CACHE LOCAL -->
+        <section id="step-cached" class="hidden bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-400 rounded-lg shadow p-4 mb-6 no-print">
+            <div class="flex items-center gap-3 mb-3 border-b border-orange-200 pb-2">
+                <div class="text-2xl">💾</div>
+                <div>
+                    <h3 class="font-bold text-orange-800">Análises Salvas Localmente</h3>
+                    <p class="text-xs text-orange-600">Selecione qual análise continuar:</p>
+                </div>
+            </div>
+            <div id="cacheInfo"></div>
+        </section>
+
+        <!-- STEP 1: MODO -->
+        <section id="step-mode" class="bg-white rounded-lg shadow p-6 mb-6 no-print">
+            <h2 class="text-lg font-bold mb-4 text-gray-700">1. Selecione o Modo de Operação</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div onclick="selectMode('simple')" id="modeSimple" class="border-2 border-gray-300 rounded-lg p-6 cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">📊</div>
+                        <h3 class="text-lg font-bold text-gray-800">Análise Simples</h3>
+                        <p class="text-sm text-gray-500 mt-2">Carregar UMA tabela e analisar inconsistências de preços</p>
+                    </div>
+                </div>
+                
+                <div onclick="selectMode('compare')" id="modeCompare" class="border-2 border-gray-300 rounded-lg p-6 cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🔄</div>
+                        <h3 class="text-lg font-bold text-gray-800">Comparativo de Tabelas</h3>
+                        <p class="text-sm text-gray-500 mt-2">Comparar tabela ATUAL com tabela NOVA</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 2: IMPORTAR -->
+        <section id="step-input" class="hidden bg-white rounded-lg shadow p-6 mb-6 no-print">
+            <h2 class="text-lg font-bold mb-4 text-gray-700">2. Importar Arquivo(s) Excel</h2>
+            
+            <div id="inputSimple" class="hidden">
+                <div class="border-2 border-dashed border-orange-300 rounded-lg p-8 text-center bg-orange-50 mb-4">
+                    <div class="text-3xl mb-2">📁</div>
+                    <p class="font-bold text-gray-700 mb-2">Tabela de Preços</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="mb-2">
+                </div>
+            </div>
+            
+            <div id="inputCompare" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50">
+                        <div class="text-3xl mb-2">📋</div>
+                        <p class="font-bold text-blue-700 mb-2">Tabela ATUAL</p>
+                        <input type="file" id="fileCurrentInput" accept=".xlsx,.xls">
+                    </div>
+                    
+                    <div class="border-2 border-dashed border-green-300 rounded-lg p-6 text-center bg-green-50">
+                        <div class="text-3xl mb-2">📄</div>
+                        <p class="font-bold text-green-700 mb-2">Tabela NOVA</p>
+                        <input type="file" id="fileNewInput" accept=".xlsx,.xls">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-4 flex-wrap">
+                <button onclick="goBackToMode()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">← Voltar</button>
+                <button onclick="processFiles()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded font-bold">Analisar Tabela(s)</button>
+                <button onclick="downloadTemplate()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Baixar Modelo Excel</button>
+            </div>
+        </section>
+
+        <!-- STEP 3: ANÁLISE -->
+        <section id="step-review" class="hidden bg-white rounded-lg shadow p-6 mb-6 no-print">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-700">3. Análise e Correção</h2>
+                    <p class="text-sm text-gray-500">
+                        Problemas: <span id="anomalyCount" class="font-bold text-red-600">0</span> | 
+                        Vazios: <span id="emptyCount" class="font-bold text-orange-600">0</span> |
+                        Total: <span id="totalCount" class="font-bold text-gray-600">0</span>
+                        <span id="compareStats" class="hidden">
+                            | Alterados: <span id="changedCount" class="font-bold text-blue-600">0</span>
+                            | Novos: <span id="newCount" class="font-bold text-green-600">0</span>
+                            | Remover: <span id="removedCount" class="font-bold text-red-600">0</span>
+                        </span>
+                    </p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="saveToCloud()" id="btnSaveCloud" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm cloud-btn">☁️ Salvar na Nuvem</button>
+                    <button onclick="exportComparative()" id="btnExportComparative" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">📊 Exportar Comparativo</button>
+                    <button onclick="generateReport()" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded text-sm">Gerar Relatório Final</button>
+                </div>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="mb-4 p-3 bg-orange-50 rounded border border-orange-200 flex flex-wrap gap-3 items-center">
+                <span class="text-xs font-bold text-orange-700">🔍 FILTROS:</span>
+                <select id="aFilterMaterial" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
+                    <option value="">Todos Materiais</option>
+                </select>
+                <select id="aFilterMesh" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
+                    <option value="">Todas Malhas</option>
+                </select>
+                <select id="aFilterWire" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
+                    <option value="">Todos Fios</option>
+                </select>
+                <select id="aFilterWidth" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
+                    <option value="">Todas Larguras</option>
+                </select>
+                <select id="aFilterStatus" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
+                    <option value="">Todos Status</option>
+                    <option value="revisar">🔴 Apenas p/ Revisar</option>
+                    <option value="vazio">🟠 Apenas Vazios</option>
+                    <option value="alterado">🔵 Apenas Alterados</option>
+                    <option value="novo">🟢 Apenas Novos</option>
+                    <option value="removido">⚫ Apenas p/ Remover</option>
+                    <option value="editado">✏️ Apenas Editados</option>
+                    <option value="ok">✅ Apenas OK</option>
+                </select>
+                <button onclick="clearAnalysisFilters()" class="text-xs text-orange-600 underline font-bold">Limpar</button>
+                <span id="filteredCount" class="text-xs text-gray-500 ml-auto"></span>
+            </div>
+
+            <div class="overflow-x-auto border rounded max-h-[500px]">
+                <table class="w-full text-xs">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="p-2 text-left">Status</th>
+                            <th class="p-2 text-left">Tipo</th>
+                            <th class="p-2 text-left">Código</th>
+                            <th class="p-2 text-left">Material</th>
+                            <th class="p-2">Malha</th>
+                            <th class="p-2">Fio</th>
+                            <th class="p-2">Largura</th>
+                            <th class="p-2">$/m² Anterior</th>
+                            <th class="p-2">$/m² Atual</th>
+                            <th class="p-2">Variação</th>
+                            <th class="p-2 bg-yellow-50">$/m² EDITAR</th>
+                            <th class="p-2 text-left">Motivo</th>
+                            <th class="p-2">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analysisBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                <strong>Legenda:</strong> 
+                <span class="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded mx-1">Revisar</span>
+                <span class="inline-block bg-orange-100 text-orange-700 px-2 py-0.5 rounded mx-1">Vazio</span>
+                <span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded mx-1">Alterado</span>
+                <span class="inline-block bg-green-100 text-green-700 px-2 py-0.5 rounded mx-1">Novo</span>
+                <span class="inline-block bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded mx-1">P/ Remover</span>
+                <span class="inline-block bg-amber-100 text-amber-700 px-2 py-0.5 rounded mx-1">Editado</span>
+            </div>
+        </section>
+
+        <!-- STEP 4: RELATÓRIO -->
+        <section id="step-report" class="hidden">
+            <div class="text-center mb-6 border-b-2 border-orange-500 pb-4">
+                <h1 class="text-2xl font-bold text-orange-600">TABELA OFICIAL DE PREÇOS</h1>
+                <h2 class="text-lg text-gray-600">Central Mesh</h2>
+                <p id="reportDate" class="text-sm text-gray-400"></p>
+            </div>
+
+            <div id="filterBar" class="mb-4 p-3 bg-orange-50 rounded border border-orange-200 flex flex-wrap gap-3 items-center no-print">
+                <span class="text-xs font-bold text-orange-700">FILTROS:</span>
+                <input type="text" id="fCode" onkeyup="applyFilters()" placeholder="Código..." class="text-xs p-1 border rounded w-24">
+                <select id="fMaterial" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Material</option></select>
+                <select id="fMesh" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Malha</option></select>
+                <select id="fWire" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Fio</option></select>
+                <select id="fWidth" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Largura</option></select>
+                <button onclick="clearFilters()" class="text-xs text-orange-600 underline">Limpar</button>
+                <div class="flex-grow"></div>
+                <button onclick="exportExcel()" class="bg-green-600 text-white text-xs px-3 py-1 rounded">Exportar Excel</button>
+            </div>
+
+            <div class="overflow-x-auto border rounded">
+                <table class="w-full text-xs" id="reportTable">
+                    <thead class="bg-orange-600 text-white">
+                        <tr>
+                            <th class="p-1 border">CÓDIGO</th>
+                            <th class="p-1 border">MATERIAL</th>
+                            <th class="p-1 border">MALHA</th>
+                            <th class="p-1 border">FIO</th>
+                            <th class="p-1 border">LARG.</th>
+                            <th class="p-1 border hide-for-vendors">$/m²</th>
+                            <th class="p-1 border">18% CRT</th>
+                            <th class="p-1 border">18% ROL</th>
+                            <th class="p-1 border">12% CRT</th>
+                            <th class="p-1 border">12% ROL</th>
+                            <th class="p-1 border">7% CRT</th>
+                            <th class="p-1 border">7% ROL</th>
+                            <th class="p-1 border hide-for-vendors">CT CRT</th>
+                            <th class="p-1 border hide-for-vendors">CT ROL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportBody"></tbody>
+                </table>
+            </div>
+
+            <div id="adminButtons" class="mt-6 text-center no-print flex flex-wrap justify-center gap-3">
+                <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded">🖨️ Imprimir PDF</button>
+                <button onclick="pubComplete()" class="bg-orange-600 text-white px-4 py-2 rounded font-bold">🌐 Publicação Completa</button>
+                <button onclick="pubVendors()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">👔 Publicação Vendedores</button>
+                <button onclick="copyCodeComplete()" class="bg-purple-600 text-white px-4 py-2 rounded">Copiar Código (Completo)</button>
+                <button onclick="copyCodeVendors()" class="bg-pink-600 text-white px-4 py-2 rounded">Copiar Código (Vendedores)</button>
+                <button onclick="location.reload()" class="text-orange-600 underline px-4 py-2">🔄 Reiniciar</button>
+            </div>
+
+            <div id="publicFooter" class="hidden mt-6 text-center text-gray-400 text-xs border-t pt-4">
+                Central Mesh - Tabela Oficial de Preços v3.21
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let data = [];
+        let currentData = [];
+        let newData = [];
+        let operationMode = 'simple';
+        let currentAnalysisId = null;
+        
+        // Parâmetros de Cálculo (configuráveis)
+        const CALC_CONFIG_KEY = 'centralMesh_calcConfig';
+        let calcParams = {
+            factor1: 2,
+            factor2: 5.60,
+            factor3: 0.82,
+            markupCorte: 1.35,
+            markupRolo: 1.30,
+            div18: 0.7235,
+            div12: 0.7835,
+            div07: 0.8335,
+            divCT: 0.9
+        };
+        
+        function loadCalcConfig() {
+            try {
+                const saved = localStorage.getItem(CALC_CONFIG_KEY);
+                if (saved) {
+                    calcParams = JSON.parse(saved);
+                }
+            } catch(e) {
+                console.log('Usando parâmetros de cálculo padrão');
+            }
+        }
+        
+        function openCalcConfig() {
+            loadCalcConfig();
+            document.getElementById('calcFactor1').value = calcParams.factor1;
+            document.getElementById('calcFactor2').value = calcParams.factor2;
+            document.getElementById('calcFactor3').value = calcParams.factor3;
+            document.getElementById('calcMarkupCorte').value = calcParams.markupCorte;
+            document.getElementById('calcMarkupRolo').value = calcParams.markupRolo;
+            document.getElementById('calcDiv18').value = calcParams.div18;
+            document.getElementById('calcDiv12').value = calcParams.div12;
+            document.getElementById('calcDiv07').value = calcParams.div07;
+            document.getElementById('calcDivCT').value = calcParams.divCT;
+            updateCalcPreview();
+            document.getElementById('calcConfigModal').classList.remove('hidden');
+            
+            // Adicionar listeners para preview em tempo real
+            const inputs = document.querySelectorAll('#calcConfigModal input');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateCalcPreview);
+            });
+        }
+        
+        function closeCalcConfig() {
+            document.getElementById('calcConfigModal').classList.add('hidden');
+        }
+        
+        function updateCalcPreview() {
+            const f1 = parseFloat(document.getElementById('calcFactor1').value) || 2;
+            const f2 = parseFloat(document.getElementById('calcFactor2').value) || 5.60;
+            const f3 = parseFloat(document.getElementById('calcFactor3').value) || 0.82;
+            const mCorte = parseFloat(document.getElementById('calcMarkupCorte').value) || 1.35;
+            const mRolo = parseFloat(document.getElementById('calcMarkupRolo').value) || 1.30;
+            const d18 = parseFloat(document.getElementById('calcDiv18').value) || 0.7235;
+            const d12 = parseFloat(document.getElementById('calcDiv12').value) || 0.7835;
+            const d07 = parseFloat(document.getElementById('calcDiv07').value) || 0.8335;
+            const dCT = parseFloat(document.getElementById('calcDivCT').value) || 0.9;
+            
+            const commonFactor = f1 * f2 * f3;
+            document.getElementById('commonFactorPreview').textContent = commonFactor.toFixed(4);
+            
+            // Exemplo com $/m² = 100
+            const base = 100;
+            const numCorte = commonFactor * mCorte * base;
+            const numRolo = commonFactor * mRolo * base;
+            
+            document.getElementById('preview18CRT').textContent = (numCorte / d18).toFixed(2);
+            document.getElementById('preview18ROL').textContent = (numRolo / d18).toFixed(2);
+            document.getElementById('preview12CRT').textContent = (numCorte / d12).toFixed(2);
+            document.getElementById('preview12ROL').textContent = (numRolo / d12).toFixed(2);
+            document.getElementById('preview7CRT').textContent = (numCorte / d07).toFixed(2);
+            document.getElementById('preview7ROL').textContent = (numRolo / d07).toFixed(2);
+            document.getElementById('previewCTCRT').textContent = (numCorte / dCT).toFixed(2);
+            document.getElementById('previewCTROL').textContent = (numRolo / dCT).toFixed(2);
+        }
+        
+        function saveCalcConfig() {
+            calcParams = {
+                factor1: parseFloat(document.getElementById('calcFactor1').value) || 2,
+                factor2: parseFloat(document.getElementById('calcFactor2').value) || 5.60,
+                factor3: parseFloat(document.getElementById('calcFactor3').value) || 0.82,
+                markupCorte: parseFloat(document.getElementById('calcMarkupCorte').value) || 1.35,
+                markupRolo: parseFloat(document.getElementById('calcMarkupRolo').value) || 1.30,
+                div18: parseFloat(document.getElementById('calcDiv18').value) || 0.7235,
+                div12: parseFloat(document.getElementById('calcDiv12').value) || 0.7835,
+                div07: parseFloat(document.getElementById('calcDiv07').value) || 0.8335,
+                divCT: parseFloat(document.getElementById('calcDivCT').value) || 0.9
+            };
+            localStorage.setItem(CALC_CONFIG_KEY, JSON.stringify(calcParams));
+            closeCalcConfig();
+            alert('✅ Parâmetros de cálculo salvos com sucesso!');
+        }
+        
+        // Salvar parâmetros de cálculo na nuvem para todos
+        async function saveCalcConfigToCloud() {
+            const config = getCloudConfig();
+            if (!config.scriptUrlSimple) {
+                alert('⚠️ Configure a URL do Google Sheets primeiro!');
+                return;
+            }
+            
+            // Primeiro salva localmente
+            saveCalcConfig();
+            
+            try {
+                const payload = {
+                    action: 'saveConfig',
+                    key: 'calcParams',
+                    data: JSON.stringify(calcParams)
+                };
+                
+                const response = await fetch(config.scriptUrlSimple, {
+                    method: 'POST',
+                    mode: 'cors',
+                    redirect: 'follow',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Parâmetros salvos na nuvem! Todos os usuários receberão automaticamente ao abrir a aplicação.');
+                } else {
+                    throw new Error(result.error || 'Erro desconhecido');
+                }
+            } catch(e) {
+                alert('❌ Erro ao salvar na nuvem: ' + e.message + '\n\n⚠️ Os parâmetros foram salvos localmente.');
+            }
+        }
+        
+        function resetCalcConfig() {
+            if (!confirm('Restaurar todos os parâmetros para os valores padrão?')) return;
+            document.getElementById('calcFactor1').value = 2;
+            document.getElementById('calcFactor2').value = 5.60;
+            document.getElementById('calcFactor3').value = 0.82;
+            document.getElementById('calcMarkupCorte').value = 1.35;
+            document.getElementById('calcMarkupRolo').value = 1.30;
+            document.getElementById('calcDiv18').value = 0.7235;
+            document.getElementById('calcDiv12').value = 0.7835;
+            document.getElementById('calcDiv07').value = 0.8335;
+            document.getElementById('calcDivCT').value = 0.9;
+            updateCalcPreview();
+        }
+        
+        // ========== SIMULADOR DE PREÇOS ==========
+        function openSimulator() {
+            loadCalcConfig();
+            calculateSimulation();
+            document.getElementById('simulatorModal').classList.remove('hidden');
+        }
+        
+        function closeSimulator() {
+            document.getElementById('simulatorModal').classList.add('hidden');
+        }
+        
+        function calculateSimulation() {
+            loadCalcConfig();
+            
+            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
+            const C = getCommonFactor();
+            
+            // Mostrar fatores
+            document.getElementById('simFactorBase').textContent = C.toFixed(4);
+            document.getElementById('simShowF1').textContent = calcParams.factor1;
+            document.getElementById('simShowF2').textContent = calcParams.factor2;
+            document.getElementById('simShowF3').textContent = calcParams.factor3;
+            document.getElementById('simShowBase').textContent = C.toFixed(4);
+            
+            // Calcular todos os preços
+            const numCorte = C * calcParams.markupCorte * price;
+            const numRolo = C * calcParams.markupRolo * price;
+            
+            const results = {
+                '18CRT': { faixa: '18%', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.div18, preco: numCorte / calcParams.div18 },
+                '18ROL': { faixa: '18%', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.div18, preco: numRolo / calcParams.div18 },
+                '12CRT': { faixa: '12%', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.div12, preco: numCorte / calcParams.div12 },
+                '12ROL': { faixa: '12%', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.div12, preco: numRolo / calcParams.div12 },
+                '7CRT': { faixa: '7%', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.div07, preco: numCorte / calcParams.div07 },
+                '7ROL': { faixa: '7%', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.div07, preco: numRolo / calcParams.div07 },
+                'CTCRT': { faixa: 'CT', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.divCT, preco: numCorte / calcParams.divCT },
+                'CTROL': { faixa: 'CT', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.divCT, preco: numRolo / calcParams.divCT }
+            };
+            
+            // Preencher tabela
+            const tbody = document.getElementById('simResultsBody');
+            tbody.innerHTML = '';
+            
+            const colors = {
+                '18%': 'bg-red-50',
+                '12%': 'bg-yellow-50',
+                '7%': 'bg-green-50',
+                'CT': 'bg-gray-100'
+            };
+            
+            for (const [key, data] of Object.entries(results)) {
+                const formula = `(${C.toFixed(3)} × ${data.markup} × ${price.toFixed(2)}) ÷ ${data.divisor}`;
+                const tr = document.createElement('tr');
+                tr.className = colors[data.faixa] + ' hover:bg-orange-100';
+                tr.innerHTML = `
+                    <td class="p-2 border border-gray-300 font-bold">${data.faixa}</td>
+                    <td class="p-2 border border-gray-300">${data.tipo}</td>
+                    <td class="p-2 border border-gray-300">${data.markup}</td>
+                    <td class="p-2 border border-gray-300">${data.divisor}</td>
+                    <td class="p-2 border border-gray-300 text-xs font-mono text-gray-600">${formula}</td>
+                    <td class="p-2 border border-gray-300 font-bold text-lg text-orange-700 bg-orange-50">${fmt(data.preco)}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+            
+            // Preencher cards
+            document.getElementById('simCard18CRT').textContent = fmt(results['18CRT'].preco);
+            document.getElementById('simCard18ROL').textContent = fmt(results['18ROL'].preco);
+            document.getElementById('simCard12CRT').textContent = fmt(results['12CRT'].preco);
+            document.getElementById('simCard12ROL').textContent = fmt(results['12ROL'].preco);
+            document.getElementById('simCard7CRT').textContent = fmt(results['7CRT'].preco);
+            document.getElementById('simCard7ROL').textContent = fmt(results['7ROL'].preco);
+            document.getElementById('simCardCTCRT').textContent = fmt(results['CTCRT'].preco);
+            document.getElementById('simCardCTROL').textContent = fmt(results['CTROL'].preco);
+        }
+        
+        function copySimulationResult() {
+            loadCalcConfig();
+            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
+            const C = getCommonFactor();
+            
+            const numCorte = C * calcParams.markupCorte * price;
+            const numRolo = C * calcParams.markupRolo * price;
+            
+            const text = `
+SIMULADOR DE PREÇOS - Central Mesh
+=====================================
+$/m² Base: ${fmt(price)}
+
+Fator Base: ${C.toFixed(4)} (${calcParams.factor1} × ${calcParams.factor2} × ${calcParams.factor3})
+Markup Corte: ${calcParams.markupCorte}
+Markup Rolo: ${calcParams.markupRolo}
+
+PREÇOS CALCULADOS:
+------------------
+18% CORTE: ${fmt(numCorte / calcParams.div18)}
+18% ROLO:  ${fmt(numRolo / calcParams.div18)}
+12% CORTE: ${fmt(numCorte / calcParams.div12)}
+12% ROLO:  ${fmt(numRolo / calcParams.div12)}
+7% CORTE:  ${fmt(numCorte / calcParams.div07)}
+7% ROLO:   ${fmt(numRolo / calcParams.div07)}
+CT CORTE:  ${fmt(numCorte / calcParams.divCT)}
+CT ROLO:   ${fmt(numRolo / calcParams.divCT)}
+
+Gerado em: ${new Date().toLocaleString('pt-BR')}
+            `.trim();
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Resultados copiados para a área de transferência!');
+            });
+        }
+        
+        // Função helper para obter o fator comum
+        function getCommonFactor() {
+            return calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
+        }
+
+        // GOOGLE SHEETS CONFIG (DUAS URLs SEPARADAS)
+        const CONFIG_KEY = 'centralMesh_cloudConfig_v2';
+        const CACHE_KEY_SIMPLE = 'centralMesh_simpleAnalysis';
+        const CACHE_KEY_COMPARE = 'centralMesh_compareAnalysis';
+        
+        // Código do Google Apps Script (SIMPLES - para cada planilha)
+        const GOOGLE_SCRIPT_CODE = `// CENTRAL MESH - API v3.21
+// Use este MESMO código para AMBAS as planilhas
+// Planilha 1: Análises Simples
+// Planilha 2: Comparativos
+// 
+// IMPORTANTE: Após colar este código, você deve:
+// 1. Salvar (Ctrl+S)
+// 2. Implantar → Nova implantação → App da Web
+// 3. Acesso: "Qualquer pessoa"
+// 4. Copiar a URL gerada
+
+function doGet(e) {
+  try {
+    const action = e.parameter.action || 'list';
+    let result;
+    
+    switch(action) {
+      case 'list':
+        result = listAnalyses();
+        break;
+      case 'load':
+        result = loadAnalysis(e.parameter.id);
+        break;
+      case 'delete':
+        result = deleteAnalysis(e.parameter.id);
+        break;
+      case 'loadConfig':
+        result = loadConfig(e.parameter.key);
+        break;
+      case 'save':
+        result = { error: 'Use POST para salvar dados' };
+        break;
+      default:
+        result = listAnalyses();
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      error: 'GET Error: ' + error.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    // Verificar se há dados
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        error: 'POST sem dados. Verifique se reimplantou o script.' 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Parse do payload
+    const payload = JSON.parse(e.postData.contents);
+    
+    let result;
+    
+    // Verificar se é para salvar config ou análise
+    if (payload.action === 'saveConfig') {
+      result = saveConfig(payload.key, payload.data);
+    } else {
+      // Executar salvamento de análise
+      result = saveAnalysis(payload);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+    
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      error: 'POST Error: ' + error.toString(),
+      tip: 'Reimplante o script com Nova Versão'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Dados');
+  
+  if (!sheet) {
+    sheet = ss.insertSheet('Dados');
+    sheet.appendRow(['ID', 'Nome', 'Arquivos', 'Qtd', 'Data', 'Usuario', 'DataJSON']);
+    sheet.getRange(1,1,1,7).setBackground('#f97316').setFontColor('#fff').setFontWeight('bold');
+  }
+  
+  return sheet;
+}
+
+function listAnalyses() {
+  const sheet = getSheet();
+  const lastRow = sheet.getLastRow();
+  
+  if (lastRow <= 1) return [];
+  
+  const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+  const list = [];
+  
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0]) {
+      list.push({
+        id: data[i][0],
+        name: data[i][1],
+        fileNames: data[i][2],
+        itemCount: data[i][3],
+        timestamp: data[i][4],
+        userName: data[i][5]
+      });
+    }
+  }
+  
+  return list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
+function loadAnalysis(id) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      return {
+        id: data[i][0],
+        name: data[i][1],
+        fileNames: data[i][2],
+        itemCount: data[i][3],
+        timestamp: data[i][4],
+        userName: data[i][5],
+        data: JSON.parse(data[i][6] || '[]')
+      };
+    }
+  }
+  
+  return { error: 'Análise não encontrada' };
+}
+
+function saveAnalysis(payload) {
+  const sheet = getSheet();
+  const id = payload.id || Utilities.getUuid();
+  const now = new Date().toISOString();
+  
+  const row = [
+    id,
+    payload.name || 'Sem nome',
+    payload.fileNames || '',
+    payload.itemCount || 0,
+    now,
+    payload.userName || 'Anônimo',
+    JSON.stringify(payload.data || [])
+  ];
+  
+  // Verificar se já existe para atualizar
+  const data = sheet.getDataRange().getValues();
+  let found = false;
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.getRange(i + 1, 1, 1, 7).setValues([row]);
+      found = true;
+      break;
+    }
+  }
+  
+  if (!found) {
+    sheet.appendRow(row);
+  }
+  
+  return { success: true, id: id, message: 'Salvo com sucesso!' };
+}
+
+function deleteAnalysis(id) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  
+  return { error: 'Não encontrada' };
+}
+
+// ========== FUNÇÕES DE CONFIGURAÇÃO ==========
+// Salva configurações globais (parâmetros, URLs, etc)
+function saveConfig(key, data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let configSheet = ss.getSheetByName('Config');
+  
+  if (!configSheet) {
+    configSheet = ss.insertSheet('Config');
+    configSheet.appendRow(['Chave', 'Valor', 'Atualizado']);
+    configSheet.getRange(1,1,1,3).setBackground('#9333ea').setFontColor('#fff').setFontWeight('bold');
+  }
+  
+  const values = configSheet.getDataRange().getValues();
+  let found = false;
+  
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] === key) {
+      configSheet.getRange(i + 1, 2).setValue(data);
+      configSheet.getRange(i + 1, 3).setValue(new Date().toISOString());
+      found = true;
+      break;
+    }
+  }
+  
+  if (!found) {
+    configSheet.appendRow([key, data, new Date().toISOString()]);
+  }
+  
+  return { success: true, message: 'Configuração salva!' };
+}
+
+// Carrega configurações globais
+function loadConfig(key) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const configSheet = ss.getSheetByName('Config');
+  
+  if (!configSheet) {
+    return { data: null };
+  }
+  
+  const values = configSheet.getDataRange().getValues();
+  
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] === key) {
+      return { data: values[i][1], updated: values[i][2] };
+    }
+  }
+  
+  return { data: null };
+}
+
+// Função de teste - execute no editor do Apps Script
+function testar() {
+  Logger.log('Script funcionando!');
+  Logger.log('Análises salvas: ' + listAnalyses().length);
+}`;
+
+        function showScriptCode() {
+            document.getElementById('scriptCodeArea').classList.remove('hidden');
+            document.getElementById('scriptCodeText').value = GOOGLE_SCRIPT_CODE;
+        }
+        
+        function hideScriptCode() {
+            document.getElementById('scriptCodeArea').classList.add('hidden');
+        }
+        
+        function copyScriptCode() {
+            navigator.clipboard.writeText(GOOGLE_SCRIPT_CODE).then(() => {
+                alert('✅ Código copiado! Cole no Google Apps Script de CADA planilha.');
+            });
+        }
+        
+        function getCloudConfig() {
+            try {
+                return JSON.parse(localStorage.getItem(CONFIG_KEY)) || {};
+            } catch(e) {
+                return {};
+            }
+        }
+        
+        function getCloudUrl(mode) {
+            const config = getCloudConfig();
+            const url = mode === 'compare' ? config.scriptUrlCompare : config.scriptUrlSimple;
+            console.log('🔍 getCloudUrl - mode:', mode, '| url:', url ? url.substring(0, 50) + '...' : 'NÃO CONFIGURADA');
+            return url;
+        }
+        
+        function openCloudConfig() {
+            const config = getCloudConfig();
+            document.getElementById('googleScriptUrlSimple').value = config.scriptUrlSimple || '';
+            document.getElementById('googleScriptUrlCompare').value = config.scriptUrlCompare || '';
+            document.getElementById('userName').value = config.userName || '';
+            document.getElementById('cloudConfigModal').classList.remove('hidden');
+        }
+        
+        function closeCloudConfig() {
+            document.getElementById('cloudConfigModal').classList.add('hidden');
+        }
+        
+        function saveCloudConfig() {
+            const scriptUrlSimple = document.getElementById('googleScriptUrlSimple').value.trim();
+            const scriptUrlCompare = document.getElementById('googleScriptUrlCompare').value.trim();
+            const userName = document.getElementById('userName').value.trim();
+            
+            localStorage.setItem(CONFIG_KEY, JSON.stringify({
+                scriptUrlSimple,
+                scriptUrlCompare,
+                userName
+            }));
+            
+            closeCloudConfig();
+            loadCloudAnalyses();
+            alert('✅ Configuração salva!');
+        }
+        
+        async function testCloudConnection(mode) {
+            const url = mode === 'compare' 
+                ? document.getElementById('googleScriptUrlCompare').value.trim()
+                : document.getElementById('googleScriptUrlSimple').value.trim();
+            
+            const resultDiv = document.getElementById('cloudTestResult');
+            const modeName = mode === 'compare' ? 'Comparativo' : 'Análise Simples';
+            
+            if (!url) {
+                resultDiv.innerHTML = `<div class="p-3 bg-red-100 text-red-700 rounded">❌ Cole a URL de ${modeName} primeiro.</div>`;
+                resultDiv.classList.remove('hidden');
+                return;
+            }
+            
+            resultDiv.innerHTML = `<div class="p-3 bg-blue-100 text-blue-700 rounded">⏳ Testando ${modeName}...</div>`;
+            resultDiv.classList.remove('hidden');
+            
+            try {
+                const response = await fetch(url + '?action=list');
+                const result = await response.json();
+                
+                if (result.error) throw new Error(result.error);
+                
+                const count = Array.isArray(result) ? result.length : 0;
+                resultDiv.innerHTML = `<div class="p-3 bg-green-100 text-green-700 rounded">✅ ${modeName} conectado! ${count} análise(s) salva(s).<br><br>
+                <strong>⚠️ Se tiver problemas ao SALVAR:</strong><br>
+                1. Vá na planilha → Extensões → Apps Script<br>
+                2. Implantar → Gerenciar implantações<br>
+                3. Clique no LÁPIS (editar)<br>
+                4. Mude "Versão" para "Nova versão"<br>
+                5. Clique em Implantar<br>
+                6. COPIE A NOVA URL e cole aqui novamente</div>`;
+            } catch(e) {
+                resultDiv.innerHTML = `<div class="p-3 bg-red-100 text-red-700 rounded">❌ Erro em ${modeName}: ${e.message}</div>`;
+            }
+        }
+        
+        async function loadCloudAnalyses() {
+            const config = getCloudConfig();
+            
+            // Carregar Análises Simples
+            if (config.scriptUrlSimple) {
+                document.getElementById('step-cloud-simple').classList.remove('hidden');
+                document.getElementById('cloudSimpleList').innerHTML = '⏳ Carregando...';
+                
+                try {
+                    const response = await fetch(config.scriptUrlSimple + '?action=list');
+                    const result = await response.json();
+                    
+                    if (Array.isArray(result) && result.length > 0) {
+                        document.getElementById('cloudSimpleList').innerHTML = result.map(a => 
+                            renderCloudItem(a, 'simple')
+                        ).join('');
+                    } else {
+                        document.getElementById('cloudSimpleList').innerHTML = '<p class="text-gray-500 text-sm">Nenhuma análise simples salva.</p>';
+                    }
+                } catch(e) {
+                    document.getElementById('cloudSimpleList').innerHTML = `<p class="text-red-600 text-sm">Erro: ${e.message}</p>`;
+                }
+            }
+            
+            // Carregar Comparativos
+            if (config.scriptUrlCompare) {
+                document.getElementById('step-cloud-compare').classList.remove('hidden');
+                document.getElementById('cloudCompareList').innerHTML = '⏳ Carregando...';
+                
+                try {
+                    const response = await fetch(config.scriptUrlCompare + '?action=list');
+                    const result = await response.json();
+                    
+                    if (Array.isArray(result) && result.length > 0) {
+                        document.getElementById('cloudCompareList').innerHTML = result.map(a => 
+                            renderCloudItem(a, 'compare')
+                        ).join('');
+                    } else {
+                        document.getElementById('cloudCompareList').innerHTML = '<p class="text-gray-500 text-sm">Nenhum comparativo salvo.</p>';
+                    }
+                } catch(e) {
+                    document.getElementById('cloudCompareList').innerHTML = `<p class="text-red-600 text-sm">Erro: ${e.message}</p>`;
+                }
+            }
+        }
+        
+        function renderCloudItem(a, mode) {
+            const date = new Date(a.timestamp).toLocaleString('pt-BR');
+            const bgClass = mode === 'simple' ? 'bg-white border-blue-200' : 'bg-white border-green-200';
+            const icon = mode === 'simple' ? '📊' : '🔄';
+            
+            return `
+                <div class="${bgClass} border rounded p-3 flex items-center justify-between">
+                    <div class="flex-1">
+                        <span class="font-bold">${icon} ${a.name || 'Sem nome'}</span>
+                        <span class="text-xs text-gray-500 ml-2">(${a.itemCount} itens)</span>
+                        <br>
+                        <span class="text-xs text-gray-400">👤 ${a.userName} | 📅 ${date}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="loadFromCloud('${a.id}', '${mode}')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm">Carregar</button>
+                        <button onclick="deleteFromCloud('${a.id}', '${mode}')" class="bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded text-xs">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function refreshCloudAnalyses(mode) {
+            loadCloudAnalyses();
+        }
+        
+        async function saveToCloud() {
+            // Verificar se operationMode está correto
+            console.log('🔍 saveToCloud - Modo atual:', operationMode);
+            
+            // Se não tiver modo definido, usar simple como padrão
+            if (!operationMode || operationMode === '') {
+                operationMode = 'simple';
+                console.log('🔍 saveToCloud - Modo não definido, usando "simple"');
+            }
+            
+            // Garantir que o modo é válido
+            if (operationMode !== 'simple' && operationMode !== 'compare') {
+                operationMode = 'simple';
+                console.log('🔍 saveToCloud - Modo inválido, corrigindo para "simple"');
+            }
+            
+            const url = getCloudUrl(operationMode);
+            const config = getCloudConfig();
+            
+            console.log('🔍 saveToCloud - URL final:', url);
+            console.log('🔍 saveToCloud - Config:', JSON.stringify(config));
+            
+            // VERIFICAÇÃO IMPORTANTE: Mostrar as duas URLs para comparar
+            console.log('📋 URL Simples configurada:', config.scriptUrlSimple);
+            console.log('📋 URL Compare configurada:', config.scriptUrlCompare);
+            console.log('📋 URL sendo usada para modo "' + operationMode + '":', url);
+            
+            console.log('🔍 Modo atual (depois):', operationMode);
+            console.log('🔍 URL obtida:', url);
+            console.log('🔍 Config completa:', config);
+            
+            if (!url) {
+                alert('⚠️ Configure a URL do Google Sheets para ' + (operationMode === 'compare' ? 'Comparativos' : 'Análise Simples') + ' primeiro!');
+                openCloudConfig();
+                return;
+            }
+            
+            const name = prompt('Nome desta análise (ex: tabela_janeiro_2025):');
+            if (!name) return;
+            
+            const btn = document.getElementById('btnSaveCloud');
+            btn.innerHTML = '⏳ Salvando...';
+            btn.disabled = true;
+            
+            try {
+                const payload = {
+                    id: currentAnalysisId || (operationMode + '_' + Date.now()),
+                    name: name,
+                    fileNames: name,
+                    userName: config.userName || 'Anônimo',
+                    itemCount: data.length,
+                    data: data
+                };
+                
+                console.log('☁️ Salvando na nuvem...', {url, operationMode, payload});
+                
+                console.log('☁️ Enviando POST para:', url);
+                console.log('☁️ Payload:', JSON.stringify(payload).substring(0, 200) + '...');
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    redirect: 'follow',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                console.log('📥 Response status:', response.status);
+                console.log('📥 Response ok:', response.ok);
+                console.log('📥 Response type:', response.type);
+                
+                const text = await response.text();
+                console.log('📥 Response text (primeiros 500 chars):', text.substring(0, 500));
+                
+                // Verificar se a resposta é válida
+                if (!text || text.trim() === '') {
+                    throw new Error('Resposta vazia do servidor. Verifique se o script foi implantado corretamente.');
+                }
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch(parseError) {
+                    console.error('Erro ao fazer parse:', parseError);
+                    throw new Error('Resposta inválida: ' + text.substring(0, 100));
+                }
+                
+                // Verificar se retornou um array (erro comum)
+                if (Array.isArray(result)) {
+                    throw new Error('O servidor retornou uma lista em vez de confirmar o salvamento. Reimplante o Google Apps Script com o código atualizado.');
+                }
+                
+                if (result.success) {
+                    currentAnalysisId = result.id;
+                    alert('✅ Salvo na nuvem com sucesso!');
+                    loadCloudAnalyses();
+                } else if (result.error) {
+                    throw new Error(result.error);
+                } else {
+                    throw new Error('Resposta inesperada: ' + JSON.stringify(result));
+                }
+            } catch(e) {
+                console.error('❌ Erro completo:', e);
+                alert('❌ Erro ao salvar: ' + e.message);
+            } finally {
+                btn.innerHTML = '☁️ Salvar na Nuvem';
+                btn.disabled = false;
+            }
+        }
+        
+        async function loadFromCloud(id, mode) {
+            const url = getCloudUrl(mode);
+            
+            try {
+                const response = await fetch(url + '?action=load&id=' + id);
+                const result = await response.json();
+                
+                if (result.error) throw new Error(result.error);
+                
+                currentAnalysisId = result.id;
+                operationMode = mode;
+                data = result.data || [];
+                
+                if (mode === 'compare') {
+                    document.getElementById('compareStats').classList.remove('hidden');
+                    document.getElementById('btnExportComparative').classList.remove('hidden');
+                }
+                
+                renderAnalysis();
+                
+                document.getElementById('step-cloud-simple').classList.add('hidden');
+                document.getElementById('step-cloud-compare').classList.add('hidden');
+                document.getElementById('step-cached').classList.add('hidden');
+                document.getElementById('step-mode').classList.add('hidden');
+                document.getElementById('step-input').classList.add('hidden');
+                document.getElementById('step-review').classList.remove('hidden');
+                
+                document.getElementById('btnSaveCloud').classList.remove('hidden');
+                
+                alert('✅ Análise carregada! ' + data.length + ' itens.');
+            } catch(e) {
+                alert('❌ Erro ao carregar: ' + e.message);
+            }
+        }
+        
+        async function deleteFromCloud(id, mode) {
+            if (!confirm('Excluir esta análise?')) return;
+            
+            const url = getCloudUrl(mode);
+            
+            try {
+                await fetch(url + '?action=delete&id=' + id);
+                alert('✅ Excluído!');
+                loadCloudAnalyses();
+            } catch(e) {
+                alert('❌ Erro: ' + e.message);
+            }
+        }
+
+        // CACHE LOCAL
+        function checkCachedData() {
+            let html = '';
+            let hasCache = false;
+            
+            const cachedSimple = localStorage.getItem(CACHE_KEY_SIMPLE);
+            const cachedCompare = localStorage.getItem(CACHE_KEY_COMPARE);
+            
+            if (cachedSimple) {
+                try {
+                    const p = JSON.parse(cachedSimple);
+                    const date = new Date(p.timestamp).toLocaleString('pt-BR');
+                    hasCache = true;
+                    html += `
+                        <div class="bg-blue-50 border border-blue-300 rounded p-3 mb-2 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-blue-800">📊 Análise Simples</span>
+                                <span class="text-xs text-gray-500">(${p.data?.length || 0} itens)</span>
+                                <br><span class="text-xs text-gray-400">📁 ${p.fileNames || 'N/A'} | ${date}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="loadCachedData('simple')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">Carregar</button>
+                                <button onclick="clearCachedData('simple')" class="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                } catch(e) {}
+            }
+            
+            if (cachedCompare) {
+                try {
+                    const p = JSON.parse(cachedCompare);
+                    const date = new Date(p.timestamp).toLocaleString('pt-BR');
+                    hasCache = true;
+                    html += `
+                        <div class="bg-green-50 border border-green-300 rounded p-3 mb-2 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-green-800">🔄 Comparativo</span>
+                                <span class="text-xs text-gray-500">(${p.data?.length || 0} itens)</span>
+                                <br><span class="text-xs text-gray-400">📁 ${p.fileNames || 'N/A'} | ${date}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="loadCachedData('compare')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">Carregar</button>
+                                <button onclick="clearCachedData('compare')" class="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                } catch(e) {}
+            }
+            
+            if (hasCache) {
+                document.getElementById('cacheInfo').innerHTML = html;
+                document.getElementById('step-cached').classList.remove('hidden');
+            }
+        }
+        
+        function saveToCache(fileNames) {
+            const key = operationMode === 'compare' ? CACHE_KEY_COMPARE : CACHE_KEY_SIMPLE;
+            const cacheData = {
+                timestamp: new Date().toISOString(),
+                mode: operationMode,
+                data: data,
+                currentData: currentData,
+                newData: newData,
+                fileNames: fileNames
+            };
+            localStorage.setItem(key, JSON.stringify(cacheData));
+        }
+        
+        function loadCachedData(mode) {
+            const key = mode === 'compare' ? CACHE_KEY_COMPARE : CACHE_KEY_SIMPLE;
+            try {
+                const p = JSON.parse(localStorage.getItem(key));
+                data = p.data || [];
+                currentData = p.currentData || [];
+                newData = p.newData || [];
+                
+                // IMPORTANTE: Forçar o modo baseado no parâmetro recebido
+                operationMode = mode;
+                
+                // Garantir que é um modo válido
+                if (operationMode !== 'simple' && operationMode !== 'compare') {
+                    operationMode = 'simple';
+                }
+                
+                console.log('📂 loadCachedData - Modo definido:', operationMode);
+                console.log('📂 loadCachedData - Dados carregados:', data.length, 'itens');
+                
+                if (operationMode === 'compare') {
+                    document.getElementById('compareStats').classList.remove('hidden');
+                    document.getElementById('btnExportComparative').classList.remove('hidden');
+                }
+                
+                renderAnalysis();
+                
+                document.getElementById('step-cached').classList.add('hidden');
+                document.getElementById('step-cloud-simple').classList.add('hidden');
+                document.getElementById('step-cloud-compare').classList.add('hidden');
+                document.getElementById('step-mode').classList.add('hidden');
+                document.getElementById('step-input').classList.add('hidden');
+                document.getElementById('step-review').classList.remove('hidden');
+                
+                const config = getCloudConfig();
+                if (getCloudUrl(operationMode)) {
+                    document.getElementById('btnSaveCloud').classList.remove('hidden');
+                }
+                
+                alert('✅ Cache carregado! ' + data.length + ' itens.');
+            } catch(e) {
+                alert('❌ Erro ao carregar cache: ' + e.message);
+            }
+        }
+        
+        function clearCachedData(mode) {
+            if (!confirm('Limpar este cache?')) return;
+            const key = mode === 'compare' ? CACHE_KEY_COMPARE : CACHE_KEY_SIMPLE;
+            localStorage.removeItem(key);
+            checkCachedData();
+            if (!localStorage.getItem(CACHE_KEY_SIMPLE) && !localStorage.getItem(CACHE_KEY_COMPARE)) {
+                document.getElementById('step-cached').classList.add('hidden');
+            }
+        }
+        
+        let autoSaveTimeout = null;
+        function autoSaveToCache() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                const key = operationMode === 'compare' ? CACHE_KEY_COMPARE : CACHE_KEY_SIMPLE;
+                try {
+                    const existing = localStorage.getItem(key);
+                    if (existing) {
+                        const p = JSON.parse(existing);
+                        p.data = data;
+                        p.timestamp = new Date().toISOString();
+                        localStorage.setItem(key, JSON.stringify(p));
+                    }
+                } catch(e) {}
+            }, 1000);
+        }
+
+        // INIT
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadCalcConfig();
+            checkCachedData();
+            
+            // Tentar carregar configurações e parâmetros da nuvem automaticamente
+            await loadConfigFromCloudAuto();
+            await loadCalcParamsFromCloudAuto();
+            
+            loadCloudAnalyses();
+        });
+        
+        // Carregar configurações da nuvem automaticamente
+        async function loadConfigFromCloudAuto() {
+            const config = getCloudConfig();
+            
+            // Se já tem URL configurada, tentar carregar config da nuvem
+            if (config.scriptUrlSimple) {
+                try {
+                    const response = await fetch(config.scriptUrlSimple + '?action=loadConfig&key=cloudUrls');
+                    const result = await response.json();
+                    
+                    if (result && result.data && !result.error) {
+                        const cloudConfig = JSON.parse(result.data);
+                        // Atualizar config local com dados da nuvem
+                        localStorage.setItem(CONFIG_KEY, JSON.stringify({
+                            ...config,
+                            ...cloudConfig
+                        }));
+                        console.log('✅ Configurações carregadas da nuvem automaticamente');
+                    }
+                } catch(e) {
+                    console.log('ℹ️ Usando configurações locais');
+                }
+            }
+        }
+        
+        // Carregar parâmetros de cálculo da nuvem automaticamente
+        async function loadCalcParamsFromCloudAuto() {
+            const config = getCloudConfig();
+            
+            if (config.scriptUrlSimple) {
+                try {
+                    const response = await fetch(config.scriptUrlSimple + '?action=loadConfig&key=calcParams');
+                    const result = await response.json();
+                    
+                    if (result && result.data && !result.error) {
+                        calcParams = JSON.parse(result.data);
+                        localStorage.setItem(CALC_CONFIG_KEY, JSON.stringify(calcParams));
+                        console.log('✅ Parâmetros de cálculo carregados da nuvem automaticamente');
+                    }
+                } catch(e) {
+                    console.log('ℹ️ Usando parâmetros de cálculo locais');
+                }
+            }
+        }
+
+        // UTILS
+        function fmt(n) {
+            if (n === null || n === undefined || isNaN(n) || n === 0) return '-';
+            return n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function fmtCurrency(n) {
+            if (n === null || n === undefined || isNaN(n)) return '-';
+            return '$' + n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function parseNum(v) {
+            if (v === null || v === undefined) return 0;
+            if (typeof v === 'number') return v;
+            let s = v.toString().replace('R$', '').replace('$', '').trim();
+            if (s.includes(',') && s.includes('.') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
+                s = s.replace(/\./g, '').replace(',', '.');
+            } else if (s.includes(',')) {
+                s = s.replace(',', '.');
+            }
+            return parseFloat(s) || 0;
+        }
+
+        function normalizeStr(s) {
+            return String(s || '').trim().toUpperCase();
+        }
+
+        // MODE SELECTION
+        function selectMode(mode) {
+            operationMode = mode;
+            document.getElementById('modeSimple').classList.remove('border-orange-500', 'bg-orange-50');
+            document.getElementById('modeCompare').classList.remove('border-orange-500', 'bg-orange-50');
+            document.getElementById('inputSimple').classList.add('hidden');
+            document.getElementById('inputCompare').classList.add('hidden');
+            
+            if (mode === 'simple') {
+                document.getElementById('modeSimple').classList.add('border-orange-500', 'bg-orange-50');
+                document.getElementById('inputSimple').classList.remove('hidden');
+            } else {
+                document.getElementById('modeCompare').classList.add('border-orange-500', 'bg-orange-50');
+                document.getElementById('inputCompare').classList.remove('hidden');
+            }
+            
+            document.getElementById('step-mode').classList.add('hidden');
+            document.getElementById('step-input').classList.remove('hidden');
+        }
+
+        function goBackToMode() {
+            document.getElementById('step-mode').classList.remove('hidden');
+            document.getElementById('step-input').classList.add('hidden');
+        }
+
+        function downloadTemplate() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet([["CÓDIGO SILÓGICA", "MATERIAL", "MALHA", "FIO/mm", "LARGURA", "$/m2"]]);
+            XLSX.utils.book_append_sheet(wb, ws, "Modelo");
+            XLSX.writeFile(wb, "modelo_central_mesh.xlsx");
+        }
+
+        // FILE READING
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const arr = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(arr, {type: 'array'});
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(ws, {header: 1});
+                        resolve(rows);
+                    } catch (err) { reject(err); }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function processFiles() {
+            try {
+                let fileNames = '';
+                
+                console.log('📁 processFiles - operationMode:', operationMode);
+                
+                if (operationMode === 'simple') {
+                    const file = document.getElementById('fileInput').files[0];
+                    if (!file) { alert("Selecione um arquivo!"); return; }
+                    fileNames = file.name;
+                    console.log('📁 processFiles - Processando arquivo simples:', fileNames);
+                    const rows = await readExcelFile(file);
+                    data = parseData(rows);
+                    analyzeData();
+                } else {
+                    const fileCurrent = document.getElementById('fileCurrentInput').files[0];
+                    const fileNew = document.getElementById('fileNewInput').files[0];
+                    if (!fileCurrent || !fileNew) { alert("Selecione ambos arquivos!"); return; }
+                    fileNames = 'Atual: ' + fileCurrent.name + ' | Nova: ' + fileNew.name;
+                    
+                    const rowsCurrent = await readExcelFile(fileCurrent);
+                    const rowsNew = await readExcelFile(fileNew);
+                    
+                    currentData = parseData(rowsCurrent);
+                    newData = parseData(rowsNew);
+                    compareAndAnalyze();
+                }
+                
+                saveToCache(fileNames);
+                renderAnalysis();
+                
+                document.getElementById('step-cached').classList.add('hidden');
+                document.getElementById('step-cloud-simple').classList.add('hidden');
+                document.getElementById('step-cloud-compare').classList.add('hidden');
+                document.getElementById('step-input').classList.add('hidden');
+                document.getElementById('step-review').classList.remove('hidden');
+                
+                if (getCloudUrl(operationMode)) {
+                    document.getElementById('btnSaveCloud').classList.remove('hidden');
+                }
+            } catch (err) {
+                alert("Erro ao ler arquivo: " + err.message);
+            }
+        }
+
+        function parseData(rows) {
+            if (rows.length < 2) return [];
+            
+            const h = rows[0].map(x => (x || '').toString().toUpperCase().trim());
+            
+            const find = (keys) => {
+                let idx = h.findIndex(x => keys.some(k => x === k));
+                if (idx !== -1) return idx;
+                return h.findIndex(x => keys.some(k => x.includes(k)));
+            };
+            
+            const iCode = find(['CÓDIGO SILÓGICA', 'CODIGO SILOGICA', 'CÓDIGO', 'CODIGO', 'COD', 'SKU']);
+            const iMat = find(['MATERIAL', 'MAT', 'TIPO']);
+            const iMesh = find(['MALHA', 'MESH']);
+            const iWire = find(['FIO/MM', 'FIO', 'WIRE', 'DIAMETRO']);
+            const iWidth = find(['LARGURA', 'LARG', 'WIDTH']);
+            const iPrice = find(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'VALOR', 'PRICE', 'M2', 'M²']);
+
+            let actualMatIdx = iMat;
+            let actualPriceIdx = iPrice;
+            
+            if (actualMatIdx === -1) {
+                for (let i = 0; i < h.length; i++) {
+                    if (i !== iCode && rows[1] && typeof rows[1][i] === 'string' && rows[1][i].length > 0) {
+                        actualMatIdx = i; break;
+                    }
+                }
+            }
+            
+            if (actualPriceIdx === -1) {
+                for (let i = h.length - 1; i >= 0; i--) {
+                    if (rows[1] && typeof rows[1][i] === 'number') {
+                        actualPriceIdx = i; break;
+                    }
+                }
+            }
+            
+            if (actualMatIdx === -1 || actualPriceIdx === -1) {
+                throw new Error("Colunas MATERIAL e $/m2 não encontradas! Cabeçalhos: " + h.join(', '));
+            }
+
+            let result = [];
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || !r.length) continue;
+                
+                const get = (idx) => idx >= 0 && r[idx] !== undefined ? r[idx] : '';
+                const price = parseNum(get(actualPriceIdx));
+                const material = get(actualMatIdx);
+                
+                if (!material && price === 0) continue;
+
+                result.push({
+                    id: i,
+                    code: String(get(iCode) || '-').trim(),
+                    material: String(material || 'N/A').trim(),
+                    mesh: String(get(iMesh) || '-').trim(),
+                    wire: String(get(iWire) || '-').trim(),
+                    width: String(get(iWidth) || '-').trim(),
+                    price: price,
+                    originalPrice: price,
+                    priceOld: null,
+                    isEmpty: price === 0,
+                    isEdited: false,
+                    anomaly: false,
+                    reasons: [],
+                    changeType: null,
+                    pendingRemoval: false
+                });
+            }
+            return result;
+        }
+
+        // ANALYSIS
+        function getMaterialRank(m) {
+            if (!m) return 0;
+            const u = String(m).toUpperCase();
+            if (u.includes('316')) return 40;
+            if (u.includes('304')) return 30;
+            if (u.includes('302')) return 20;
+            if (u.includes('GALV') || u.includes('CARB')) return 10;
+            return 0;
+        }
+
+        function analyzeData() {
+            const groups = {};
+            data.forEach(item => {
+                const key = item.material + '|' + item.mesh + '|' + item.wire;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(item);
+            });
+
+            for (let key in groups) {
+                const g = groups[key];
+                if (g.length < 2) continue;
+                
+                const validPrices = g.filter(x => x.price > 0).map(x => x.price);
+                if (validPrices.length === 0) continue;
+                const avg = validPrices.reduce((s, x) => s + x, 0) / validPrices.length;
+                
+                g.forEach(item => {
+                    if (item.price > 0 && avg > 0) {
+                        const diff = Math.abs((item.price - avg) / avg);
+                        if (diff > 0.15) {
+                            item.anomaly = true;
+                            item.reasons.push('Preço ' + Math.round(diff*100) + '% ' + (item.price > avg ? 'acima' : 'abaixo') + ' da média do grupo');
+                        }
+                    }
+                });
+            }
+
+            // Cross-material check
+            let specMap = {};
+            data.forEach(item => {
+                const specKey = item.mesh + '-' + item.wire + '-' + item.width;
+                if (!specMap[specKey]) specMap[specKey] = [];
+                specMap[specKey].push(item);
+            });
+
+            for (let key in specMap) {
+                const items = specMap[key];
+                if (items.length < 2) continue;
+                items.sort((a, b) => getMaterialRank(a.material) - getMaterialRank(b.material));
+
+                for (let i = 0; i < items.length; i++) {
+                    for (let j = i + 1; j < items.length; j++) {
+                        const lowerItem = items[i];
+                        const higherItem = items[j];
+                        if (getMaterialRank(higherItem.material) > getMaterialRank(lowerItem.material)) {
+                            if (lowerItem.price > higherItem.price * 1.05) {
+                                lowerItem.anomaly = true;
+                                lowerItem.reasons.push('Incoerência: ' + lowerItem.material + ' mais caro que ' + higherItem.material);
+                                higherItem.anomaly = true;
+                                higherItem.reasons.push('Incoerência: ' + higherItem.material + ' mais barato que ' + lowerItem.material);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Mark empty
+            data.forEach(item => {
+                if (item.price === 0) {
+                    item.isEmpty = true;
+                    item.anomaly = true;
+                    if (!item.reasons.includes("Preço em branco")) item.reasons.push("Preço em branco");
+                }
+            });
+
+            updateCounters();
+        }
+
+        // COMPARE
+        function getItemKey(item) {
+            return normalizeStr(item.code) + '|' + normalizeStr(item.material) + '|' + normalizeStr(item.mesh) + '|' + normalizeStr(item.wire) + '|' + normalizeStr(item.width);
+        }
+        
+        function getItemKeyNoCode(item) {
+            return normalizeStr(item.material) + '|' + normalizeStr(item.mesh) + '|' + normalizeStr(item.wire) + '|' + normalizeStr(item.width);
+        }
+
+        function compareAndAnalyze() {
+            const currentMapFull = {};
+            const currentMapNoCode = {};
+            currentData.forEach(item => {
+                currentMapFull[getItemKey(item)] = item;
+                currentMapNoCode[getItemKeyNoCode(item)] = item;
+            });
+            
+            data = [];
+
+            newData.forEach(newItem => {
+                let currentItem = currentMapFull[getItemKey(newItem)] || currentMapNoCode[getItemKeyNoCode(newItem)];
+                
+                if (currentItem) {
+                    if (Math.abs(newItem.price - currentItem.price) > 0.01) {
+                        newItem.priceOld = currentItem.price;
+                        newItem.changeType = 'changed';
+                        newItem.anomaly = true;
+                        newItem.reasons.push('Preço alterado');
+                    }
+                    currentMapFull[getItemKey(currentItem)] = null;
+                    currentMapNoCode[getItemKeyNoCode(currentItem)] = null;
+                } else {
+                    newItem.changeType = 'new';
+                    newItem.anomaly = true;
+                    newItem.reasons.push('Item novo');
+                }
+                
+                if (newItem.price === 0) {
+                    newItem.isEmpty = true;
+                    if (!newItem.reasons.includes("Preço em branco")) newItem.reasons.push("Preço em branco");
+                }
+                
+                data.push(newItem);
+            });
+            
+            currentData.forEach(currentItem => {
+                const keyFull = getItemKey(currentItem);
+                const keyNoCode = getItemKeyNoCode(currentItem);
+                if (currentMapFull[keyFull] !== null && currentMapNoCode[keyNoCode] !== null) {
+                    currentItem.changeType = 'removed';
+                    currentItem.pendingRemoval = true;
+                    currentItem.anomaly = true;
+                    currentItem.reasons.push('Não existe na nova tabela');
+                    data.push(currentItem);
+                }
+            });
+            
+            document.getElementById('compareStats').classList.remove('hidden');
+            document.getElementById('btnExportComparative').classList.remove('hidden');
+            updateCounters();
+        }
+
+        // RENDER
+        function populateAnalysisFilters() {
+            const mats = [...new Set(data.map(x => String(x.material || '')))].sort();
+            const meshes = [...new Set(data.map(x => String(x.mesh || '')))].sort((a,b) => parseFloat(a)-parseFloat(b));
+            const wires = [...new Set(data.map(x => String(x.wire || '')))].sort((a,b) => parseFloat(a)-parseFloat(b));
+            const widths = [...new Set(data.map(x => String(x.width || '')))].sort((a,b) => parseFloat(a)-parseFloat(b));
+
+            const fill = (id, opts, label) => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '<option value="">' + label + '</option>';
+                opts.forEach(o => { if(o) sel.add(new Option(o, o)); });
+            };
+
+            fill('aFilterMaterial', mats, 'Todos Materiais');
+            fill('aFilterMesh', meshes, 'Todas Malhas');
+            fill('aFilterWire', wires, 'Todos Fios');
+            fill('aFilterWidth', widths, 'Todas Larguras');
+        }
+
+        function getChangeTypeLabel(type, pendingRemoval, isEmpty, isEdited) {
+            if (isEdited) return '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs">✏️ Editado</span>';
+            if (isEmpty) return '<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">🟠 Vazio</span>';
+            if (pendingRemoval) return '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs">⚠️ P/ Remover</span>';
+            if (type === 'changed') return '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">🔄 Alterado</span>';
+            if (type === 'new') return '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">➕ Novo</span>';
+            if (type === 'removed') return '<span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs">✓ Removido</span>';
+            return '<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">—</span>';
+        }
+
+        function getVariationBadge(oldPrice, newPrice) {
+            if (!oldPrice || oldPrice === 0) return '-';
+            const variation = ((newPrice - oldPrice) / oldPrice) * 100;
+            const absVar = Math.abs(variation).toFixed(1);
+            if (variation > 0) return '<span class="text-red-600 font-medium">▲ +' + absVar + '%</span>';
+            if (variation < 0) return '<span class="text-green-600 font-medium">▼ -' + absVar + '%</span>';
+            return '<span class="text-gray-400">= 0%</span>';
+        }
+
+        function renderAnalysis() {
+            const tbody = document.getElementById('analysisBody');
+            tbody.innerHTML = '';
+            populateAnalysisFilters();
+
+            const sorted = [...data].sort((a, b) => {
+                const matA = String(a.material || '');
+                const matB = String(b.material || '');
+                if (matA !== matB) return matA.localeCompare(matB);
+                if (a.mesh !== b.mesh) return parseFloat(a.mesh || 0) - parseFloat(b.mesh || 0);
+                if (a.wire !== b.wire) return parseFloat(a.wire || 0) - parseFloat(b.wire || 0);
+                return parseFloat(a.width || 0) - parseFloat(b.width || 0);
+            });
+
+            let lastMat = null;
+            sorted.forEach(item => {
+                if (lastMat && lastMat !== item.material) {
+                    const sep = document.createElement('tr');
+                    sep.className = 'bg-orange-200 separator-row';
+                    sep.innerHTML = '<td colspan="13" class="p-2 text-center text-xs font-bold text-orange-800">── ' + item.material + ' ──</td>';
+                    tbody.appendChild(sep);
+                }
+                lastMat = item.material;
+
+                const idx = data.indexOf(item);
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-idx', idx);
+                
+                let bgClass = '';
+                if (item.isEmpty) bgClass = 'row-empty';
+                else if (item.isEdited) bgClass = 'row-changed';
+                else if (item.pendingRemoval) bgClass = 'bg-yellow-50';
+                else if (item.changeType === 'new') bgClass = 'bg-green-50';
+                else if (item.changeType === 'changed') bgClass = 'bg-blue-50';
+                else if (item.anomaly) bgClass = 'bg-red-50';
+                tr.className = bgClass;
+                
+                let inputClass = 'price-input w-20 p-1 border rounded text-center font-bold';
+                if (item.isEmpty) inputClass += ' empty';
+                else if (item.isEdited) inputClass += ' changed';
+                
+                const priceInput = '<input type="number" step="0.01" value="' + (item.price || '') + '" onchange="updatePrice(' + idx + ', this.value)" class="' + inputClass + '" placeholder="0,00">';
+                
+                let actionHtml = '';
+                if (item.pendingRemoval) {
+                    actionHtml = '<button onclick="confirmRemoval(' + idx + ')" class="bg-red-500 text-white px-2 py-1 rounded text-xs mr-1">Remover</button><button onclick="keepItem(' + idx + ')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Manter</button>';
+                } else if (item.isEdited) {
+                    actionHtml = '<button onclick="resetPrice(' + idx + ')" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">Desfazer</button>';
+                }
+                
+                let statusHtml = '';
+                if (item.anomaly || item.isEmpty) {
+                    statusHtml = item.isEmpty ? '<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">Vazio</span>' : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs">Revisar</span>';
+                } else if (item.isEdited) {
+                    statusHtml = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs">Editado</span>';
+                } else {
+                    statusHtml = '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">OK</span>';
+                }
+                
+                tr.innerHTML = '<td class="p-2 border">' + statusHtml + '</td><td class="p-2 border">' + getChangeTypeLabel(item.changeType, item.pendingRemoval, item.isEmpty, item.isEdited) + '</td><td class="p-2 border font-mono text-xs">' + item.code + '</td><td class="p-2 border font-bold text-orange-700">' + item.material + '</td><td class="p-2 border text-center">' + item.mesh + '</td><td class="p-2 border text-center">' + item.wire + '</td><td class="p-2 border text-center">' + item.width + '</td><td class="p-2 border text-center text-gray-500">' + (item.priceOld !== null ? fmtCurrency(item.priceOld) : '-') + '</td><td class="p-2 border text-center ' + (item.anomaly && !item.isEdited ? 'text-red-600 font-bold' : '') + '">' + (item.originalPrice > 0 ? fmtCurrency(item.originalPrice) : '-') + '</td><td class="p-2 border text-center">' + getVariationBadge(item.priceOld, item.price) + '</td><td class="p-2 border text-center bg-yellow-50">' + priceInput + '</td><td class="p-2 border text-xs text-red-600">' + item.reasons.join('; ') + '</td><td class="p-2 border text-center">' + actionHtml + '</td>';
+                tbody.appendChild(tr);
+            });
+            
+            updateCounters();
+        }
+
+        function updatePrice(idx, value) {
+            const newPrice = parseFloat(value) || 0;
+            const item = data[idx];
+            item.price = newPrice;
+            item.isEdited = (newPrice !== item.originalPrice);
+            item.isEmpty = (newPrice === 0);
+            autoSaveToCache();
+            updateCounters();
+            
+            const row = document.querySelector('tr[data-idx="' + idx + '"]');
+            if (row) {
+                const input = row.querySelector('.price-input');
+                input.classList.remove('empty', 'changed');
+                if (item.isEmpty) input.classList.add('empty');
+                else if (item.isEdited) input.classList.add('changed');
+                
+                row.classList.remove('row-empty', 'row-changed', 'bg-red-50', 'bg-green-50', 'bg-blue-50', 'bg-yellow-50');
+                if (item.isEmpty) row.classList.add('row-empty');
+                else if (item.isEdited) row.classList.add('row-changed');
+                else if (item.anomaly) row.classList.add('bg-red-50');
+            }
+        }
+
+        function resetPrice(idx) {
+            data[idx].price = data[idx].originalPrice;
+            data[idx].isEdited = false;
+            data[idx].isEmpty = (data[idx].price === 0);
+            renderAnalysis();
+            applyAnalysisFilters();
+        }
+
+        function confirmRemoval(idx) {
+            data[idx].pendingRemoval = false;
+            data[idx].changeType = 'removed';
+            data[idx].anomaly = false;
+            data[idx].reasons = ['Remoção aprovada'];
+            autoSaveToCache();
+            renderAnalysis();
+            applyAnalysisFilters();
+        }
+
+        function keepItem(idx) {
+            data[idx].pendingRemoval = false;
+            data[idx].changeType = null;
+            data[idx].anomaly = false;
+            data[idx].reasons = ['Mantido'];
+            autoSaveToCache();
+            renderAnalysis();
+            applyAnalysisFilters();
+        }
+
+        function updateCounters() {
+            const anomalies = data.filter(x => x.anomaly && !x.isEmpty).length;
+            const empties = data.filter(x => x.isEmpty).length;
+            document.getElementById('anomalyCount').innerText = anomalies;
+            document.getElementById('emptyCount').innerText = empties;
+            document.getElementById('totalCount').innerText = data.length;
+            if (document.getElementById('changedCount')) {
+                document.getElementById('changedCount').innerText = data.filter(x => x.changeType === 'changed').length;
+                document.getElementById('newCount').innerText = data.filter(x => x.changeType === 'new').length;
+                document.getElementById('removedCount').innerText = data.filter(x => x.pendingRemoval).length;
+            }
+        }
+
+        // FILTERS
+        function applyAnalysisFilters() {
+            const mat = document.getElementById('aFilterMaterial').value;
+            const mesh = document.getElementById('aFilterMesh').value;
+            const wire = document.getElementById('aFilterWire').value;
+            const width = document.getElementById('aFilterWidth').value;
+            const status = document.getElementById('aFilterStatus').value;
+
+            let visibleCount = 0;
+            
+            document.querySelectorAll('#analysisBody tr').forEach(row => {
+                if (row.classList.contains('separator-row')) { row.style.display = 'none'; return; }
+                const idx = parseInt(row.getAttribute('data-idx'));
+                if (isNaN(idx)) return;
+                const item = data[idx];
+                const cells = row.children;
+                const rMat = cells[3].innerText;
+                const rMesh = cells[4].innerText;
+                const rWire = cells[5].innerText;
+                const rWidth = cells[6].innerText;
+
+                let show = true;
+                if (mat && rMat !== mat) show = false;
+                if (mesh && rMesh !== mesh) show = false;
+                if (wire && rWire !== wire) show = false;
+                if (width && rWidth !== width) show = false;
+                if (status === 'revisar' && (!item.anomaly || item.isEmpty)) show = false;
+                if (status === 'vazio' && !item.isEmpty) show = false;
+                if (status === 'alterado' && item.changeType !== 'changed') show = false;
+                if (status === 'novo' && item.changeType !== 'new') show = false;
+                if (status === 'removido' && !item.pendingRemoval) show = false;
+                if (status === 'editado' && !item.isEdited) show = false;
+                if (status === 'ok' && (item.anomaly || item.isEmpty || item.isEdited)) show = false;
+
+                row.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            document.getElementById('filteredCount').innerText = 'Exibindo: ' + visibleCount + ' itens';
+        }
+
+        function clearAnalysisFilters() {
+            document.getElementById('aFilterMaterial').value = '';
+            document.getElementById('aFilterMesh').value = '';
+            document.getElementById('aFilterWire').value = '';
+            document.getElementById('aFilterWidth').value = '';
+            document.getElementById('aFilterStatus').value = '';
+            applyAnalysisFilters();
+        }
+
+        // EXPORT COMPARATIVE
+        function exportComparative() {
+            const rows = [["CÓDIGO", "MATERIAL", "MALHA", "FIO", "LARGURA", "$/m² ANTERIOR", "$/m² NOVO", "VARIAÇÃO %", "VARIAÇÃO $", "STATUS", "OBSERVAÇÃO"]];
+            data.forEach(item => {
+                const priceOld = item.priceOld !== null ? item.priceOld : (item.changeType === 'new' ? 0 : item.originalPrice);
+                const priceNew = item.price || 0;
+                let variationPct = '-', variationAbs = '-';
+                if (priceOld > 0 && priceNew > 0) {
+                    const pct = ((priceNew - priceOld) / priceOld) * 100;
+                    variationPct = pct.toFixed(2) + '%';
+                    variationAbs = (priceNew - priceOld).toFixed(2);
+                } else if (item.changeType === 'new') variationPct = 'NOVO';
+                else if (item.pendingRemoval) variationPct = 'P/ REMOVER';
+                
+                let status = 'OK';
+                if (item.changeType === 'changed') status = 'ALTERADO';
+                else if (item.changeType === 'new') status = 'NOVO';
+                else if (item.pendingRemoval) status = 'P/ REMOVER';
+                else if (item.isEmpty) status = 'VAZIO';
+                else if (item.isEdited) status = 'EDITADO';
+                
+                rows.push([item.code, item.material, item.mesh, item.wire, item.width, priceOld, priceNew, variationPct, variationAbs, status, item.reasons.join('; ')]);
+            });
+            
+            rows.push([]);
+            rows.push(['=== RESUMO ===']);
+            rows.push(['Total:', data.length]);
+            rows.push(['Alterados:', data.filter(x => x.changeType === 'changed').length]);
+            rows.push(['Novos:', data.filter(x => x.changeType === 'new').length]);
+            rows.push(['P/ Remover:', data.filter(x => x.pendingRemoval).length]);
+            rows.push(['Data:', new Date().toLocaleString('pt-BR')]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, "Comparativo");
+            XLSX.writeFile(wb, 'Comparativo_' + new Date().toISOString().slice(0,10) + '.xlsx');
+        }
+
+        // REPORT
+        function generateReport() {
+            const pending = data.filter(x => x.pendingRemoval);
+            if (pending.length > 0 && !confirm('Existem ' + pending.length + ' itens pendentes de remoção. Continuar?')) return;
+            
+            const finalData = data.filter(x => x.changeType !== 'removed');
+            
+            const tbody = document.getElementById('reportBody');
+            tbody.innerHTML = '';
+            document.getElementById('reportDate').innerText = 'Atualizado: ' + new Date().toLocaleDateString('pt-BR');
+
+            finalData.sort((a, b) => {
+                const matA = String(a.material || '');
+                const matB = String(b.material || '');
+                if (matA !== matB) return matA.localeCompare(matB);
+                return parseFloat(a.mesh || 0) - parseFloat(b.mesh || 0);
+            });
+
+            // Usar parâmetros configuráveis
+            loadCalcConfig();
+            const C = getCommonFactor();
+            const MCRT = calcParams.markupCorte, MROL = calcParams.markupRolo;
+            const D18 = calcParams.div18, D12 = calcParams.div12, D07 = calcParams.div07, DCT = calcParams.divCT;
+
+            finalData.forEach(item => {
+                const b = item.price || 0;
+                const nCrt = C * MCRT * b;
+                const nRol = C * MROL * b;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-orange-50';
+                tr.innerHTML = '<td class="p-1 border text-xs">' + item.code + '</td><td class="p-1 border text-xs font-bold">' + item.material + '</td><td class="p-1 border text-xs text-center">' + item.mesh + '</td><td class="p-1 border text-xs text-center">' + item.wire + '</td><td class="p-1 border text-xs text-center">' + item.width + '</td><td class="p-1 border text-xs text-right bg-gray-100 hide-for-vendors">' + fmt(b) + '</td><td class="p-1 border text-xs text-right">' + fmt(nCrt/D18) + '</td><td class="p-1 border text-xs text-right">' + fmt(nRol/D18) + '</td><td class="p-1 border text-xs text-right">' + fmt(nCrt/D12) + '</td><td class="p-1 border text-xs text-right">' + fmt(nRol/D12) + '</td><td class="p-1 border text-xs text-right">' + fmt(nCrt/D07) + '</td><td class="p-1 border text-xs text-right">' + fmt(nRol/D07) + '</td><td class="p-1 border text-xs text-right hide-for-vendors">' + fmt(nCrt/DCT) + '</td><td class="p-1 border text-xs text-right hide-for-vendors">' + fmt(nRol/DCT) + '</td>';
+                tbody.appendChild(tr);
+            });
+
+            const mats = [...new Set(finalData.map(x => x.material))].sort();
+            const meshes = [...new Set(finalData.map(x => x.mesh))].sort((a,b) => parseFloat(a)-parseFloat(b));
+            const wires = [...new Set(finalData.map(x => x.wire))].sort((a,b) => parseFloat(a)-parseFloat(b));
+            const widths = [...new Set(finalData.map(x => x.width))].sort((a,b) => parseFloat(a)-parseFloat(b));
+
+            fillSel('fMaterial', mats, 'Material');
+            fillSel('fMesh', meshes, 'Malha');
+            fillSel('fWire', wires, 'Fio');
+            fillSel('fWidth', widths, 'Largura');
+
+            data = finalData;
+
+            document.getElementById('step-review').classList.add('hidden');
+            document.getElementById('step-report').classList.remove('hidden');
+        }
+
+        function fillSel(id, opts, label) {
+            const sel = document.getElementById(id);
+            sel.innerHTML = '<option value="">' + label + '</option>';
+            opts.forEach(o => sel.add(new Option(o, o)));
+        }
+
+        function applyFilters() {
+            const code = document.getElementById('fCode').value.toUpperCase();
+            const mat = document.getElementById('fMaterial').value;
+            const mesh = document.getElementById('fMesh').value;
+            const wire = document.getElementById('fWire').value;
+            const width = document.getElementById('fWidth').value;
+
+            document.querySelectorAll('#reportBody tr').forEach(row => {
+                const c = row.children;
+                let show = true;
+                if (code && !c[0].innerText.toUpperCase().includes(code)) show = false;
+                if (mat && c[1].innerText !== mat) show = false;
+                if (mesh && c[2].innerText !== mesh) show = false;
+                if (wire && c[3].innerText !== wire) show = false;
+                if (width && c[4].innerText !== width) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('fCode').value = '';
+            document.getElementById('fMaterial').value = '';
+            document.getElementById('fMesh').value = '';
+            document.getElementById('fWire').value = '';
+            document.getElementById('fWidth').value = '';
+            applyFilters();
+        }
+
+        function exportExcel() {
+            // Usar parâmetros configuráveis
+            loadCalcConfig();
+            const C = getCommonFactor();
+            const MCRT = calcParams.markupCorte, MROL = calcParams.markupRolo;
+            const D18 = calcParams.div18, D12 = calcParams.div12, D07 = calcParams.div07, DCT = calcParams.divCT;
+
+            const rows = [["CÓDIGO", "MATERIAL", "MALHA", "FIO", "LARGURA", "$/m²", "18% CRT", "18% ROL", "12% CRT", "12% ROL", "7% CRT", "7% ROL", "CT CRT", "CT ROL"]];
+            data.forEach(item => {
+                const b = item.price || 0;
+                const nCrt = C * MCRT * b;
+                const nRol = C * MROL * b;
+                rows.push([item.code, item.material, item.mesh, item.wire, item.width, b, nCrt/D18, nRol/D18, nCrt/D12, nRol/D12, nCrt/D07, nRol/D07, nCrt/DCT, nRol/DCT]);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, "Tabela");
+            XLSX.writeFile(wb, "Tabela_Central_Mesh.xlsx");
+        }
+
+        function pubComplete() {
+            document.querySelector('nav').classList.add('hidden');
+            document.getElementById('adminButtons').classList.add('hidden');
+            document.getElementById('publicFooter').classList.remove('hidden');
+            document.getElementById('step-report').classList.remove('vendors-mode');
+        }
+
+        function pubVendors() {
+            document.querySelector('nav').classList.add('hidden');
+            document.getElementById('adminButtons').classList.add('hidden');
+            document.getElementById('publicFooter').classList.remove('hidden');
+            document.getElementById('step-report').classList.add('vendors-mode');
+        }
+
+        function copyCodeComplete() {
+            const html = document.getElementById('step-report').outerHTML;
+            const code = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"><\/script></head><body class="p-4 bg-white">' + html + '<script>function applyFilters(){const c=document.getElementById("fCode").value.toUpperCase(),m=document.getElementById("fMaterial").value,h=document.getElementById("fMesh").value,w=document.getElementById("fWire").value,l=document.getElementById("fWidth").value;document.querySelectorAll("#reportBody tr").forEach(r=>{const x=r.children;let s=true;if(c&&!x[0].innerText.toUpperCase().includes(c))s=false;if(m&&x[1].innerText!==m)s=false;if(h&&x[2].innerText!==h)s=false;if(w&&x[3].innerText!==w)s=false;if(l&&x[4].innerText!==l)s=false;r.style.display=s?"":"none"});}function clearFilters(){document.getElementById("fCode").value="";document.getElementById("fMaterial").value="";document.getElementById("fMesh").value="";document.getElementById("fWire").value="";document.getElementById("fWidth").value="";applyFilters();}function exportExcel(){const t=document.querySelector("table");const wb=XLSX.utils.table_to_book(t);XLSX.writeFile(wb,"Tabela_Central_Mesh.xlsx");}<\/script></body></html>';
+            navigator.clipboard.writeText(code).then(() => alert('✅ Código COMPLETO copiado!'));
+        }
+
+        function copyCodeVendors() {
+            const html = document.getElementById('step-report').outerHTML;
+            const code = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"><\/script><style>.hide-for-vendors{display:none!important}</style></head><body class="p-4 bg-white">' + html + '<script>function applyFilters(){const c=document.getElementById("fCode").value.toUpperCase(),m=document.getElementById("fMaterial").value,h=document.getElementById("fMesh").value,w=document.getElementById("fWire").value,l=document.getElementById("fWidth").value;document.querySelectorAll("#reportBody tr").forEach(r=>{const x=r.children;let s=true;if(c&&!x[0].innerText.toUpperCase().includes(c))s=false;if(m&&x[1].innerText!==m)s=false;if(h&&x[2].innerText!==h)s=false;if(w&&x[3].innerText!==w)s=false;if(l&&x[4].innerText!==l)s=false;r.style.display=s?"":"none"});}function clearFilters(){document.getElementById("fCode").value="";document.getElementById("fMaterial").value="";document.getElementById("fMesh").value="";document.getElementById("fWire").value="";document.getElementById("fWidth").value="";applyFilters();}function exportExcel(){const t=document.querySelector("table");const wb=XLSX.utils.table_to_book(t);XLSX.writeFile(wb,"Tabela_Central_Mesh.xlsx");}<\/script></body></html>';
+            navigator.clipboard.writeText(code).then(() => alert('✅ Código VENDEDORES copiado!'));
+        }
+    </script>
+</body>
+</html>
