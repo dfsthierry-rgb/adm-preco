@@ -3,35 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central Mesh - Gestor de Preços v4.00</title>
+    <title>Central Mesh - Gestor de Preços v7.00</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        body { font-family: 'Inter', sans-serif; }
         
         @media print {
             .no-print { display: none !important; }
-            body { background: white; }
+            body { background: white !important; }
+            .print-break { page-break-before: always; }
         }
         
-        .hide-for-vendors { }
-        .vendors-mode .hide-for-vendors { display: none !important; }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .gradient-orange {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        
-        .gradient-green {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); }
         
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
@@ -39,128 +25,122 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .price-input {
-            transition: all 0.2s;
-        }
-        
-        .price-input:focus {
-            transform: scale(1.02);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        }
-        
-        .price-input.changed {
-            background-color: #fef3c7 !important;
-            border-color: #f59e0b !important;
-        }
-        
-        .price-input.empty {
-            background-color: #fee2e2 !important;
-            border-color: #ef4444 !important;
-        }
-        
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
             transition: all 0.3s;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(30, 58, 95, 0.3); }
         
         .btn-success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
             transition: all 0.3s;
         }
-        
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(17, 153, 142, 0.3);
-        }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(5, 150, 105, 0.3); }
         
         .btn-warning {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
             transition: all 0.3s;
         }
+        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(217, 119, 6, 0.3); }
         
-        .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3);
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            transition: all 0.3s;
+        }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3); }
+        
+        .cloud-status {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 9999px;
+            font-size: 12px; font-weight: 500;
+        }
+        .cloud-status.connected { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46; }
+        .cloud-status.disconnected { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b; }
+        
+        .notification { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .stat-card { transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        
+        .group-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-left: 4px solid #1e3a5f;
         }
         
-        .animate-float {
-            animation: float 3s ease-in-out infinite;
+        .filter-select {
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .filter-select:focus {
+            border-color: #1e3a5f;
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
         }
         
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .animate-pulse-slow {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .publication-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
         }
         
         .table-modern th {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
-        .table-modern tbody tr:hover {
-            background-color: rgba(99, 102, 241, 0.05);
+        .table-modern tbody tr:hover { background-color: rgba(30, 58, 95, 0.05); }
+        
+        .variation-up { color: #dc2626; font-weight: 600; }
+        .variation-down { color: #059669; font-weight: 600; }
+        .variation-new { color: #7c3aed; font-weight: 600; }
+        
+        .summary-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
-        .cloud-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 9999px;
-            font-size: 12px;
-            font-weight: 500;
+        .pulse-save {
+            animation: pulse-save 2s infinite;
+        }
+        @keyframes pulse-save {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
-        .cloud-status.connected {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            color: #065f46;
+        .reason-tooltip {
+            max-width: 300px;
+            white-space: normal;
+            word-wrap: break-word;
         }
         
-        .cloud-status.disconnected {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
+        .reason-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-        }
-        
-        .notification {
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .reason-cell:hover {
+            white-space: normal;
+            overflow: visible;
+            position: relative;
+            z-index: 100;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            padding: 8px;
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
 
-    <!-- Navbar Moderna -->
+    <!-- Navbar -->
     <nav class="gradient-bg text-white shadow-xl no-print sticky top-0 z-50">
         <div class="container mx-auto px-6 py-4">
             <div class="flex justify-between items-center">
@@ -172,18 +152,16 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-bold">Central Mesh</h1>
-                        <p class="text-xs text-white/70">Gestor de Preços</p>
+                        <p class="text-xs text-white/70">Gestor de Preços Profissional</p>
                     </div>
                 </div>
                 
                 <div class="flex items-center gap-3">
-                    <!-- Status da Nuvem -->
                     <div id="cloudStatusBadge" class="cloud-status disconnected">
                         <span id="cloudStatusIcon">○</span>
                         <span id="cloudStatusText">Offline</span>
                     </div>
                     
-                    <!-- Botões do Menu -->
                     <button onclick="openCalcConfig()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -199,256 +177,28 @@
                         Simulador
                     </button>
                     
-                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">
-                        v4.00
-                    </div>
+                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.00</div>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Notificações -->
-    <div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
-
-    <!-- Modal Simulador -->
-    <div id="simulatorModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4 no-print">
-        <div class="glass-card rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🧮 Simulador de Preços</h3>
-                    <button onclick="closeSimulator()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition">✕</button>
-                </div>
-            </div>
-            
-            <div class="p-6">
-                <div class="mb-6 p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200">
-                    <p class="text-sm text-emerald-800 mb-3 font-medium">💵 Digite o valor em $/m² para calcular todos os preços:</p>
-                    <div class="flex items-center gap-6">
-                        <div class="flex-1 max-w-xs">
-                            <div class="relative">
-                                <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-emerald-600 font-bold text-xl">$</span>
-                                <input type="number" step="0.01" id="simInputPrice" value="100" oninput="calculateSimulation()"
-                                    class="w-full p-4 pl-10 border-2 border-emerald-400 rounded-xl text-center font-bold text-3xl text-emerald-700 focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition">
-                            </div>
-                        </div>
-                        <div class="text-center bg-white rounded-xl p-4 shadow-sm">
-                            <p class="text-xs text-slate-500 mb-1">Fator Base</p>
-                            <p id="simFactorBase" class="text-2xl font-bold text-indigo-600">9.184</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Cards de Resultados -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">18% CORTE</p>
-                        <p id="simCard18CRT" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-red-400 to-rose-500 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">18% ROLO</p>
-                        <p id="simCard18ROL" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">12% CORTE</p>
-                        <p id="simCard12CRT" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">12% ROLO</p>
-                        <p id="simCard12ROL" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">7% CORTE</p>
-                        <p id="simCard7CRT" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">7% ROLO</p>
-                        <p id="simCard7ROL" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">CT CORTE</p>
-                        <p id="simCardCTCRT" class="text-2xl font-bold">-</p>
-                    </div>
-                    <div class="bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl p-4 text-white">
-                        <p class="text-xs opacity-80 font-medium">CT ROLO</p>
-                        <p id="simCardCTROL" class="text-2xl font-bold">-</p>
-                    </div>
-                </div>
-                
-                <!-- Fórmula -->
-                <div class="bg-slate-800 rounded-xl p-4 text-white mb-6">
-                    <h4 class="font-bold mb-2 text-indigo-400">📐 Fórmula:</h4>
-                    <p class="text-sm font-mono text-emerald-400">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
-                    <div class="grid grid-cols-4 gap-4 mt-3 text-xs">
-                        <div><span class="text-slate-400">Fator1:</span> <span id="simShowF1" class="text-white font-bold">2</span></div>
-                        <div><span class="text-slate-400">Fator2:</span> <span id="simShowF2" class="text-white font-bold">5.60</span></div>
-                        <div><span class="text-slate-400">Fator3:</span> <span id="simShowF3" class="text-white font-bold">0.82</span></div>
-                        <div><span class="text-slate-400">Base:</span> <span id="simShowBase" class="text-emerald-400 font-bold">9.184</span></div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-end gap-3">
-                    <button onclick="copySimulationResult()" class="btn-success text-white px-6 py-2.5 rounded-xl font-medium">
-                        📋 Copiar Resultados
-                    </button>
-                    <button onclick="closeSimulator()" class="bg-slate-200 hover:bg-slate-300 px-6 py-2.5 rounded-xl font-medium transition">
-                        Fechar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Parâmetros -->
-    <div id="calcConfigModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4 no-print">
-        <div class="glass-card rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">⚙️ Parâmetros de Cálculo</h3>
-                    <button onclick="closeCalcConfig()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition">✕</button>
-                </div>
-            </div>
-            
-            <div class="p-6">
-                <!-- Status de sincronização -->
-                <div id="paramSyncStatus" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-                    <span class="font-medium">ℹ️ Os parâmetros são salvos na nuvem e compartilhados com todos os usuários.</span>
-                </div>
-                
-                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
-                    <p class="text-sm text-indigo-800"><strong>📐 Fórmula Base:</strong></p>
-                    <p class="text-xs text-indigo-600 mt-1 font-mono">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
-                </div>
-                
-                <!-- Fatores -->
-                <div class="mb-6">
-                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                        <span class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                        Fatores Multiplicadores
-                    </h4>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                            <label class="block text-xs font-bold text-slate-500 mb-2">Fator 1</label>
-                            <input type="number" step="0.01" id="calcFactor1" value="2" class="w-full p-3 border border-slate-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                            <label class="block text-xs font-bold text-slate-500 mb-2">Fator 2</label>
-                            <input type="number" step="0.01" id="calcFactor2" value="5.60" class="w-full p-3 border border-slate-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
-                        </div>
-                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-                            <label class="block text-xs font-bold text-slate-500 mb-2">Fator 3</label>
-                            <input type="number" step="0.01" id="calcFactor3" value="0.82" class="w-full p-3 border border-slate-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
-                        </div>
-                    </div>
-                    <div class="mt-3 p-3 bg-slate-100 rounded-xl text-center">
-                        <span class="text-sm text-slate-600">Fator Base Comum = </span>
-                        <span id="commonFactorPreview" class="font-bold text-indigo-600 text-lg">9.184</span>
-                    </div>
-                </div>
-                
-                <!-- Markups -->
-                <div class="mb-6">
-                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                        <span class="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                        Markups
-                    </h4>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-200">
-                            <label class="block text-xs font-bold text-orange-700 mb-2">Markup CORTE</label>
-                            <input type="number" step="0.01" id="calcMarkupCorte" value="1.35" class="w-full p-3 border border-orange-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-orange-200 focus:border-orange-500 transition">
-                        </div>
-                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                            <label class="block text-xs font-bold text-blue-700 mb-2">Markup ROLO</label>
-                            <input type="number" step="0.01" id="calcMarkupRolo" value="1.30" class="w-full p-3 border border-blue-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Divisores -->
-                <div class="mb-6">
-                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
-                        <span class="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                        Divisores por Faixa
-                    </h4>
-                    <div class="grid grid-cols-4 gap-3">
-                        <div class="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-3 border border-red-200">
-                            <label class="block text-xs font-bold text-red-700 mb-2 text-center">18%</label>
-                            <input type="number" step="0.0001" id="calcDiv18" value="0.7235" class="w-full p-2 border border-red-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-red-200 transition">
-                        </div>
-                        <div class="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-3 border border-amber-200">
-                            <label class="block text-xs font-bold text-amber-700 mb-2 text-center">12%</label>
-                            <input type="number" step="0.0001" id="calcDiv12" value="0.7835" class="w-full p-2 border border-amber-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-amber-200 transition">
-                        </div>
-                        <div class="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-3 border border-emerald-200">
-                            <label class="block text-xs font-bold text-emerald-700 mb-2 text-center">7%</label>
-                            <input type="number" step="0.0001" id="calcDiv07" value="0.8335" class="w-full p-2 border border-emerald-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-emerald-200 transition">
-                        </div>
-                        <div class="bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-3 border border-slate-300">
-                            <label class="block text-xs font-bold text-slate-700 mb-2 text-center">CT</label>
-                            <input type="number" step="0.0001" id="calcDivCT" value="0.9" class="w-full p-2 border border-slate-400 rounded-lg text-center font-bold focus:ring-2 focus:ring-slate-200 transition">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Preview -->
-                <div class="mb-6 p-4 bg-slate-800 rounded-xl text-white">
-                    <h4 class="font-bold mb-3 text-indigo-400">📊 Preview ($/m² = 100):</h4>
-                    <div class="grid grid-cols-4 gap-2 text-xs font-mono">
-                        <div>18% CRT: <span class="text-emerald-400" id="preview18CRT">-</span></div>
-                        <div>18% ROL: <span class="text-emerald-400" id="preview18ROL">-</span></div>
-                        <div>12% CRT: <span class="text-amber-400" id="preview12CRT">-</span></div>
-                        <div>12% ROL: <span class="text-amber-400" id="preview12ROL">-</span></div>
-                        <div>7% CRT: <span class="text-blue-400" id="preview7CRT">-</span></div>
-                        <div>7% ROL: <span class="text-blue-400" id="preview7ROL">-</span></div>
-                        <div>CT CRT: <span class="text-slate-400" id="previewCTCRT">-</span></div>
-                        <div>CT ROL: <span class="text-slate-400" id="previewCTROL">-</span></div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-between">
-                    <button onclick="resetCalcConfig()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium transition">
-                        ↩️ Restaurar Padrões
-                    </button>
-                    <div class="flex gap-3">
-                        <button onclick="closeCalcConfig()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium transition">
-                            Cancelar
-                        </button>
-                        <button onclick="saveCalcConfig()" class="btn-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold">
-                            💾 Salvar Parâmetros
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="notifications" class="fixed top-20 right-4 z-50 space-y-2 no-print"></div>
 
     <!-- Container Principal -->
     <div class="container mx-auto px-6 py-8 max-w-7xl">
 
-        <!-- ========================================== -->
-        <!-- CONFIGURAÇÃO: COLE SUAS URLs AQUI ABAIXO  -->
-        <!-- ========================================== -->
+        <!-- Configuração de URLs -->
         <script>
-            // ╔════════════════════════════════════════════════════════════════╗
-            // ║  CONFIGURAÇÃO DAS URLs DAS PLANILHAS GOOGLE SHEETS             ║
-            // ║  Cole as URLs das suas planilhas abaixo:                       ║
-            // ╚════════════════════════════════════════════════════════════════╝
-            
             const CLOUD_CONFIG = {
-                // URL da planilha de ANÁLISES SIMPLES
-                // Exemplo: 'https://script.google.com/macros/s/AKfycbw.../exec'
                 URL_SIMPLE: 'https://script.google.com/macros/s/AKfycbycuH6_t7JkVhfSy0k8sqadVtUiJoLfaiROy0l8_3b7sEfveMFQwrzV-K_RoP8V8eSxSg/exec',
-                
-                // URL da planilha de COMPARATIVOS
-                // Exemplo: 'https://script.google.com/macros/s/AKfycbx.../exec'
                 URL_COMPARE: 'https://script.google.com/macros/s/AKfycbwvhbLID6yWEQqnLkBWORUR7GNMQdkjhXs4vK4JQF-FPOImduOG5pOu9tIuRvPVevolcg/exec',
-                
-                // Nome padrão do usuário (opcional)
                 DEFAULT_USER: 'Usuário'
             };
         </script>
-        <!-- ========================================== -->
 
-        <!-- Aviso se URLs não configuradas -->
+        <!-- Aviso de configuração -->
         <div id="configWarning" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-6 mb-6 no-print">
             <div class="flex items-start gap-4">
                 <div class="text-4xl">⚙️</div>
@@ -462,18 +212,18 @@
             </div>
         </div>
 
-        <!-- Análises na Nuvem -->
+        <!-- Seção de Análises na Nuvem -->
         <section id="cloudAnalyses" class="hidden mb-8 no-print">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Análises Simples -->
-                <div class="glass-card rounded-2xl p-6 border border-indigo-100 shadow-lg">
+                <div class="glass-card rounded-2xl p-6 shadow-lg">
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl">📊</div>
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-xl">📊</div>
                         <div>
                             <h3 class="font-bold text-slate-800">Análises Simples</h3>
                             <p class="text-xs text-slate-500">Tabelas salvas na nuvem</p>
                         </div>
-                        <button onclick="loadCloudAnalyses('simple')" class="ml-auto text-indigo-600 hover:text-indigo-800 text-sm font-medium">🔄 Atualizar</button>
+                        <button onclick="loadCloudAnalyses('simple')" class="ml-auto text-blue-600 hover:text-blue-800 text-sm font-medium">🔄 Atualizar</button>
                     </div>
                     <div id="simpleAnalysesList" class="space-y-2 max-h-48 overflow-y-auto">
                         <p class="text-sm text-slate-400 text-center py-4">Carregando...</p>
@@ -481,7 +231,7 @@
                 </div>
                 
                 <!-- Comparativos -->
-                <div class="glass-card rounded-2xl p-6 border border-emerald-100 shadow-lg">
+                <div class="glass-card rounded-2xl p-6 shadow-lg">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white text-xl">🔄</div>
                         <div>
@@ -497,15 +247,29 @@
             </div>
         </section>
 
+        <!-- Cache Local -->
+        <section id="localCacheSection" class="hidden mb-8 no-print">
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg">💾</div>
+                    <div>
+                        <h3 class="font-bold text-slate-800">Cache Local</h3>
+                        <p class="text-xs text-slate-500">Análises salvas neste navegador</p>
+                    </div>
+                </div>
+                <div id="localCacheList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </section>
+
         <!-- Seleção de Modo -->
         <section id="modeSelection" class="mb-8 no-print">
             <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Selecione o Modo de Análise</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                <button onclick="selectMode('simple')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-indigo-400 transition-all group hover:shadow-xl">
+                <button onclick="selectMode('simple')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-blue-400 transition-all group hover:shadow-xl">
                     <div class="text-center">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
-                            📊
-                        </div>
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">📊</div>
                         <h3 class="text-xl font-bold text-slate-800 mb-2">Análise Simples</h3>
                         <p class="text-sm text-slate-500">Carregue UMA tabela e analise inconsistências de preços</p>
                     </div>
@@ -513,11 +277,9 @@
                 
                 <button onclick="selectMode('compare')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-emerald-400 transition-all group hover:shadow-xl">
                     <div class="text-center">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
-                            🔄
-                        </div>
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">🔄</div>
                         <h3 class="text-xl font-bold text-slate-800 mb-2">Comparativo de Tabelas</h3>
-                        <p class="text-sm text-slate-500">Compare tabela ATUAL com tabela NOVA</p>
+                        <p class="text-sm text-slate-500">Compare tabela ATUAL com tabela NOVA e veja alterações</p>
                     </div>
                 </button>
             </div>
@@ -532,7 +294,7 @@
                 </div>
                 
                 <div id="simpleUpload" class="hidden">
-                    <div class="border-2 border-dashed border-indigo-300 rounded-2xl p-12 text-center bg-indigo-50/50 hover:bg-indigo-100/50 transition cursor-pointer" onclick="document.getElementById('fileSimple').click()">
+                    <div class="border-2 border-dashed border-blue-300 rounded-2xl p-12 text-center bg-blue-50/50 hover:bg-blue-100/50 transition cursor-pointer" onclick="document.getElementById('fileSimple').click()">
                         <input type="file" id="fileSimple" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'simple')">
                         <div class="text-5xl mb-4">📄</div>
                         <p id="fileSimpleName" class="text-lg font-medium text-slate-700">Clique para selecionar arquivo Excel</p>
@@ -571,31 +333,78 @@
             </div>
         </section>
 
+        <!-- Resumo Comparativo -->
+        <section id="compareSummary" class="hidden mb-8 no-print">
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">📊 Resumo do Comparativo</h3>
+                
+                <!-- Cards de Estatísticas -->
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+                    <div class="stat-card bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-slate-800" id="statTotal">0</p>
+                        <p class="text-xs text-slate-500 font-medium">Total</p>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-blue-700" id="statChanged">0</p>
+                        <p class="text-xs text-blue-600 font-medium">Alterados</p>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-emerald-700" id="statNew">0</p>
+                        <p class="text-xs text-emerald-600 font-medium">Novos</p>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-red-100 to-red-200 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-red-700" id="statRemoved">0</p>
+                        <p class="text-xs text-red-600 font-medium">Removidos</p>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-amber-700" id="statReview">0</p>
+                        <p class="text-xs text-amber-600 font-medium">P/ Revisar</p>
+                    </div>
+                    <div class="stat-card bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-4 text-center">
+                        <p class="text-3xl font-bold text-purple-700" id="statVariation">0%</p>
+                        <p class="text-xs text-purple-600 font-medium">Var. Média</p>
+                    </div>
+                </div>
+                
+                <!-- Resumo por Grupo (Material) -->
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h4 class="font-bold text-slate-700 mb-3">📦 Variação por Material</h4>
+                    <div id="groupSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+                
+                <!-- Resumo por Malha -->
+                <div class="bg-slate-50 rounded-xl p-4 mt-4">
+                    <h4 class="font-bold text-slate-700 mb-3">🔢 Variação por Malha</h4>
+                    <div id="meshSummary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Tela de Análise -->
         <section id="analysisSection" class="hidden mb-8 no-print">
             <div class="glass-card rounded-2xl shadow-lg overflow-hidden">
                 <div class="p-6 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
                         <div>
                             <h2 class="text-xl font-bold text-slate-800">📊 Análise de Preços</h2>
-                            <p class="text-sm text-slate-500 mt-1">
-                                Total: <span id="totalCount" class="font-bold">0</span> |
-                                Revisar: <span id="reviewCount" class="font-bold text-red-600">0</span> |
-                                Vazios: <span id="emptyCount" class="font-bold text-amber-600">0</span>
-                                <span id="compareStats" class="hidden">
-                                    | Alterados: <span id="changedCount" class="font-bold text-blue-600">0</span>
-                                    | Novos: <span id="newCount" class="font-bold text-emerald-600">0</span>
-                                </span>
-                            </p>
+                            <p class="text-sm text-slate-500 mt-1" id="analysisStats"></p>
                         </div>
-                        <div class="flex gap-3">
-                            <button onclick="saveToCloud()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                                ☁️ Salvar na Nuvem
+                        <div class="flex gap-3 flex-wrap">
+                            <!-- Botões de Salvar -->
+                            <button onclick="saveToLocal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+                                💾 Salvar Local
+                            </button>
+                            <button onclick="saveToCloud()" id="btnSaveCloud" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+                                ☁️ Salvar Nuvem
                             </button>
                             <button onclick="approveAllVisible()" class="btn-success text-white px-4 py-2 rounded-xl text-sm font-medium">
                                 ✓ Aprovar Filtrados
                             </button>
-                            <button onclick="generateReport()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-medium">
+                            <button onclick="generateReport()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium">
                                 📄 Gerar Relatório
                             </button>
                         </div>
@@ -604,31 +413,31 @@
                     <!-- Filtros -->
                     <div class="mt-4 flex flex-wrap gap-3 items-center">
                         <span class="text-xs font-bold text-slate-500">FILTROS:</span>
-                        <select id="filterMaterial" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                        <select id="filterMaterial" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[150px]">
                             <option value="">Todos Materiais</option>
                         </select>
-                        <select id="filterMesh" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                        <select id="filterMesh" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[100px]">
                             <option value="">Todas Malhas</option>
                         </select>
-                        <select id="filterWire" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                        <select id="filterWire" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[100px]">
                             <option value="">Todos Fios</option>
                         </select>
-                        <select id="filterStatus" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                        <select id="filterStatus" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[120px]">
                             <option value="">Todos Status</option>
                             <option value="review">🔴 Revisar</option>
-                            <option value="empty">🟠 Vazios</option>
                             <option value="changed">🔵 Alterados</option>
                             <option value="new">🟢 Novos</option>
+                            <option value="removed">⚪ Removidos</option>
                             <option value="ok">✅ OK</option>
                         </select>
-                        <button onclick="clearFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Limpar</button>
+                        <button onclick="clearFilters()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
                         <span id="filteredInfo" class="text-xs text-slate-400 ml-auto"></span>
                     </div>
                 </div>
                 
-                <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+                <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
                     <table class="w-full text-sm table-modern">
-                        <thead class="sticky top-0 z-10">
+                        <thead>
                             <tr class="text-white text-xs">
                                 <th class="p-3 text-left font-medium">Status</th>
                                 <th class="p-3 text-left font-medium">Código</th>
@@ -644,63 +453,86 @@
                                 <th class="p-3 text-center font-medium">Ação</th>
                             </tr>
                         </thead>
-                        <tbody id="analysisTableBody" class="divide-y divide-slate-200">
-                        </tbody>
+                        <tbody id="analysisTableBody" class="divide-y divide-slate-200"></tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- Relatório Final -->
+        <!-- Relatório Final / Publicação -->
         <section id="reportSection" class="hidden">
-            <div class="text-center mb-8 pb-6 border-b-4 border-indigo-600">
-                <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">TABELA OFICIAL DE PREÇOS</h1>
-                <h2 class="text-xl text-slate-600 mt-2">Central Mesh</h2>
-                <p id="reportDate" class="text-sm text-slate-400 mt-2"></p>
+            <!-- Cabeçalho da Publicação -->
+            <div class="publication-header text-center">
+                <h1 class="text-3xl font-bold mb-2">TABELA OFICIAL DE PREÇOS</h1>
+                <h2 class="text-xl opacity-90">Central Mesh</h2>
+                <p class="text-sm opacity-70 mt-2" id="reportDate"></p>
+                <p class="text-xs opacity-50 mt-1" id="reportVersion">Versão 7.00</p>
             </div>
             
-            <!-- Filtros do Relatório -->
-            <div class="mb-6 p-4 bg-white rounded-xl border border-slate-200 flex flex-wrap gap-4 items-center no-print shadow-sm">
-                <span class="text-xs font-bold text-slate-500">FILTROS:</span>
-                <input type="text" id="reportFilterCode" onkeyup="applyReportFilters()" placeholder="Código..." class="text-xs p-2 border border-slate-300 rounded-lg w-24">
-                <select id="reportFilterMaterial" onchange="applyReportFilters()" class="text-xs p-2 border border-slate-300 rounded-lg"><option value="">Material</option></select>
-                <select id="reportFilterMesh" onchange="applyReportFilters()" class="text-xs p-2 border border-slate-300 rounded-lg"><option value="">Malha</option></select>
-                <select id="reportFilterWire" onchange="applyReportFilters()" class="text-xs p-2 border border-slate-300 rounded-lg"><option value="">Fio</option></select>
-                <button onclick="clearReportFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Limpar</button>
-                <div class="flex-grow"></div>
-                <button onclick="exportExcel()" class="btn-success text-white px-4 py-2 rounded-lg text-xs font-medium">📥 Exportar Excel</button>
+            <!-- Botões de Ação no Topo -->
+            <div class="mb-6 flex flex-wrap gap-4 justify-center no-print" id="reportActionsTop">
+                <button onclick="saveToLocal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+                    💾 Salvar Local
+                </button>
+                <button onclick="saveToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+                    ☁️ Salvar Nuvem
+                </button>
+                <button onclick="exportToPDF()" class="btn-danger text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2">
+                    📄 Exportar PDF
+                </button>
+                <button onclick="backToAnalysis()" class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-medium">
+                    ← Voltar à Análise
+                </button>
             </div>
             
-            <div class="overflow-x-auto bg-white rounded-xl shadow-lg border border-slate-200">
-                <table class="w-full text-xs" id="reportTable">
-                    <thead class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-                        <tr>
-                            <th class="p-2 border border-indigo-500 text-left">CÓDIGO</th>
-                            <th class="p-2 border border-indigo-500 text-left">MATERIAL</th>
-                            <th class="p-2 border border-indigo-500 text-center">MALHA</th>
-                            <th class="p-2 border border-indigo-500 text-center">FIO</th>
-                            <th class="p-2 border border-indigo-500 text-center">LARG.</th>
-                            <th class="p-2 border border-indigo-500 text-right hide-for-vendors">$/m²</th>
-                            <th class="p-2 border border-indigo-500 text-right">18% CRT</th>
-                            <th class="p-2 border border-indigo-500 text-right">18% ROL</th>
-                            <th class="p-2 border border-indigo-500 text-right">12% CRT</th>
-                            <th class="p-2 border border-indigo-500 text-right">12% ROL</th>
-                            <th class="p-2 border border-indigo-500 text-right">7% CRT</th>
-                            <th class="p-2 border border-indigo-500 text-right">7% ROL</th>
-                            <th class="p-2 border border-indigo-500 text-right hide-for-vendors">CT CRT</th>
-                            <th class="p-2 border border-indigo-500 text-right hide-for-vendors">CT ROL</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reportTableBody" class="divide-y divide-slate-200">
-                    </tbody>
-                </table>
+            <!-- Filtros da Publicação -->
+            <div class="bg-white rounded-xl p-4 mb-6 shadow-lg no-print">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <span class="text-sm font-bold text-slate-600">🔍 Filtrar:</span>
+                    <input type="text" id="pubFilterCode" onkeyup="applyPubFilters()" placeholder="Código..." class="filter-select text-sm p-2 rounded-lg w-32">
+                    <select id="pubFilterMaterial" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg min-w-[150px]">
+                        <option value="">Todos Materiais</option>
+                    </select>
+                    <select id="pubFilterMesh" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg min-w-[100px]">
+                        <option value="">Todas Malhas</option>
+                    </select>
+                    <select id="pubFilterWire" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg min-w-[100px]">
+                        <option value="">Todos Fios</option>
+                    </select>
+                    <button onclick="clearPubFilters()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
+                    <span id="pubFilteredInfo" class="text-xs text-slate-400 ml-auto"></span>
+                </div>
+            </div>
+            
+            <!-- Tabela do Relatório -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs table-modern" id="reportTable">
+                        <thead>
+                            <tr class="text-white text-[10px] uppercase">
+                                <th class="p-2 text-left font-medium">Código</th>
+                                <th class="p-2 text-left font-medium">Material</th>
+                                <th class="p-2 text-center font-medium">Malha</th>
+                                <th class="p-2 text-center font-medium">Fio</th>
+                                <th class="p-2 text-center font-medium">Larg.</th>
+                                <th class="p-2 text-right font-medium hide-for-vendors">$/m²</th>
+                                <th class="p-2 text-right font-medium">18% CRT</th>
+                                <th class="p-2 text-right font-medium">18% ROL</th>
+                                <th class="p-2 text-right font-medium">12% CRT</th>
+                                <th class="p-2 text-right font-medium">12% ROL</th>
+                                <th class="p-2 text-right font-medium">7% CRT</th>
+                                <th class="p-2 text-right font-medium">7% ROL</th>
+                                <th class="p-2 text-right font-medium hide-for-vendors">CT CRT</th>
+                                <th class="p-2 text-right font-medium hide-for-vendors">CT ROL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
             </div>
             
             <!-- Botões de Publicação -->
             <div class="mt-8 flex flex-wrap justify-center gap-4 no-print" id="reportActions">
-                <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-medium transition">
-                    🖨️ Imprimir PDF
-                </button>
                 <button onclick="publishComplete()" class="btn-primary text-white px-6 py-3 rounded-xl font-bold">
                     🌐 Publicação Completa
                 </button>
@@ -713,35 +545,95 @@
                 <button onclick="copyEmbedCode('vendors')" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl font-medium transition">
                     📋 Copiar Código Vendedores
                 </button>
-                <button onclick="location.reload()" class="text-indigo-600 hover:text-indigo-800 px-6 py-3 font-medium">
-                    🔄 Nova Análise
-                </button>
             </div>
             
+            <!-- Rodapé da Publicação -->
             <div id="publicFooter" class="hidden mt-8 pt-6 border-t border-slate-200 text-center text-slate-400 text-xs">
-                Central Mesh - Tabela Oficial de Preços | Gerado em <span id="footerDate"></span>
+                <p>Central Mesh - Tabela Oficial de Preços</p>
+                <p class="mt-1">Publicado em: <span id="footerDate"></span> | Versão 7.00</p>
+                <p class="mt-1 text-slate-300">Valores sujeitos a alteração sem aviso prévio</p>
             </div>
         </section>
-
     </div>
 
-    <!-- Modal Apps Script -->
-    <div id="appsScriptModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4 no-print">
-        <div class="glass-card rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-slate-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-slate-800">📜 Código do Google Apps Script</h3>
-                    <button onclick="closeAppsScriptModal()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition">✕</button>
-                </div>
+    <!-- Modal Simulador -->
+    <div id="simulatorModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">🧮 Simulador de Preços</h3>
+                <button onclick="closeSimulator()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
             </div>
             <div class="p-6">
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-                    <p class="text-sm text-amber-800"><strong>⚠️ Cole este código em AMBAS as planilhas</strong> (Análises Simples e Comparativos)</p>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Digite o valor $/m²:</label>
+                    <input type="number" id="simPrice" placeholder="Ex: 100.00" class="w-full p-4 text-2xl font-bold text-center border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200" oninput="calculateSimulation()">
                 </div>
-                <div class="mb-4">
-                    <button onclick="copyAppsScriptCode()" class="btn-success text-white px-4 py-2 rounded-lg font-medium">📋 Copiar Código</button>
+                <div id="simResults" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Preenchido via JS -->
                 </div>
-                <pre id="appsScriptCode" class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-xs overflow-x-auto max-h-96 font-mono"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Parâmetros -->
+    <div id="calcConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">⚙️ Parâmetros de Cálculo</h3>
+                <button onclick="closeCalcConfig()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Fator 1</label>
+                        <input type="number" id="paramF1" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold" value="2">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Fator 2</label>
+                        <input type="number" id="paramF2" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold" value="5.60">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Fator 3</label>
+                        <input type="number" id="paramF3" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold" value="0.82">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-amber-50 p-4 rounded-xl">
+                        <label class="block text-xs font-bold text-amber-700 mb-2">Markup Corte</label>
+                        <input type="number" id="paramMarkupCorte" step="0.01" class="w-full p-3 border border-amber-300 rounded-xl text-center font-bold" value="1.35">
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl">
+                        <label class="block text-xs font-bold text-blue-700 mb-2">Markup Rolo</label>
+                        <input type="number" id="paramMarkupRolo" step="0.01" class="w-full p-3 border border-blue-300 rounded-xl text-center font-bold" value="1.30">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor 18%</label>
+                        <input type="number" id="paramDiv18" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.7235">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor 12%</label>
+                        <input type="number" id="paramDiv12" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.7835">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor 7%</label>
+                        <input type="number" id="paramDiv07" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.8335">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor CT</label>
+                        <input type="number" id="paramDivCT" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.9">
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <button onclick="resetParams()" class="text-slate-500 hover:text-slate-700 text-sm">Restaurar Padrões</button>
+                    <button onclick="saveParams()" class="btn-primary text-white px-6 py-2 rounded-xl font-medium">
+                        💾 Salvar Parâmetros
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -752,301 +644,69 @@
         let currentData = [];
         let newData = [];
         let operationMode = 'simple';
-        let fileSimple = null;
-        let fileCurrent = null;
-        let fileNew = null;
+        let currentFileNames = '';
         
-        // Parâmetros de cálculo padrão
         let calcParams = {
-            factor1: 2,
-            factor2: 5.60,
-            factor3: 0.82,
-            markupCorte: 1.35,
-            markupRolo: 1.30,
-            div18: 0.7235,
-            div12: 0.7835,
-            div07: 0.8335,
-            divCT: 0.9
+            f1: 2, f2: 5.60, f3: 0.82,
+            markupCorte: 1.35, markupRolo: 1.30,
+            div18: 0.7235, div12: 0.7835, div07: 0.8335, divCT: 0.9
         };
-        
+
         // ========== INICIALIZAÇÃO ==========
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Central Mesh v4.00 - Iniciando...');
-            
-            // Verificar se URLs estão configuradas
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCalcParams();
+            checkCloudConfig();
+            loadLocalCache();
+        });
+
+        // ========== FUNÇÕES DE CONFIGURAÇÃO ==========
+        function checkCloudConfig() {
             if (!CLOUD_CONFIG.URL_SIMPLE && !CLOUD_CONFIG.URL_COMPARE) {
                 document.getElementById('configWarning').classList.remove('hidden');
                 updateCloudStatus(false);
             } else {
                 document.getElementById('cloudAnalyses').classList.remove('hidden');
                 updateCloudStatus(true);
-                
-                // Carregar parâmetros da nuvem
-                await loadCalcParamsFromCloud();
-                
-                // Carregar análises
                 loadCloudAnalyses('simple');
                 loadCloudAnalyses('compare');
             }
-            
-            // Carregar parâmetros locais como fallback
-            loadCalcParamsLocal();
-        });
-        
-        // ========== STATUS DA NUVEM ==========
+        }
+
         function updateCloudStatus(connected) {
             const badge = document.getElementById('cloudStatusBadge');
             const icon = document.getElementById('cloudStatusIcon');
             const text = document.getElementById('cloudStatusText');
             
             if (connected) {
-                badge.classList.remove('disconnected');
-                badge.classList.add('connected');
+                badge.className = 'cloud-status connected';
                 icon.textContent = '●';
                 text.textContent = 'Conectado';
             } else {
-                badge.classList.remove('connected');
-                badge.classList.add('disconnected');
+                badge.className = 'cloud-status disconnected';
                 icon.textContent = '○';
                 text.textContent = 'Offline';
             }
         }
-        
+
         // ========== NOTIFICAÇÕES ==========
         function showNotification(message, type = 'info') {
-            const container = document.getElementById('notifications');
             const colors = {
                 success: 'bg-emerald-500',
                 error: 'bg-red-500',
                 warning: 'bg-amber-500',
-                info: 'bg-indigo-500'
+                info: 'bg-blue-500'
             };
             
-            const notification = document.createElement('div');
-            notification.className = `notification ${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg font-medium text-sm`;
-            notification.textContent = message;
-            container.appendChild(notification);
+            const container = document.getElementById('notifications');
+            const notif = document.createElement('div');
+            notif.className = `notification ${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg font-medium`;
+            notif.textContent = message;
+            container.appendChild(notif);
             
-            setTimeout(() => notification.remove(), 5000);
+            setTimeout(() => notif.remove(), 4000);
         }
-        
-        // ========== PARÂMETROS DE CÁLCULO ==========
-        async function loadCalcParamsFromCloud() {
-            if (!CLOUD_CONFIG.URL_SIMPLE) return;
-            
-            try {
-                console.log('☁️ Carregando parâmetros da nuvem...');
-                const response = await fetch(CLOUD_CONFIG.URL_SIMPLE + '?action=loadConfig&key=calcParams');
-                const result = await response.json();
-                
-                if (result && result.data) {
-                    calcParams = JSON.parse(result.data);
-                    localStorage.setItem('calcParams', JSON.stringify(calcParams));
-                    console.log('✅ Parâmetros carregados da nuvem:', calcParams);
-                    showNotification('Parâmetros carregados da nuvem', 'success');
-                }
-            } catch (e) {
-                console.log('⚠️ Erro ao carregar parâmetros da nuvem:', e);
-            }
-        }
-        
-        function loadCalcParamsLocal() {
-            try {
-                const saved = localStorage.getItem('calcParams');
-                if (saved) {
-                    calcParams = JSON.parse(saved);
-                    console.log('💾 Parâmetros carregados do local:', calcParams);
-                }
-            } catch (e) {
-                console.log('Usando parâmetros padrão');
-            }
-        }
-        
-        async function saveCalcConfig() {
-            // Ler valores dos inputs
-            calcParams = {
-                factor1: parseFloat(document.getElementById('calcFactor1').value) || 2,
-                factor2: parseFloat(document.getElementById('calcFactor2').value) || 5.60,
-                factor3: parseFloat(document.getElementById('calcFactor3').value) || 0.82,
-                markupCorte: parseFloat(document.getElementById('calcMarkupCorte').value) || 1.35,
-                markupRolo: parseFloat(document.getElementById('calcMarkupRolo').value) || 1.30,
-                div18: parseFloat(document.getElementById('calcDiv18').value) || 0.7235,
-                div12: parseFloat(document.getElementById('calcDiv12').value) || 0.7835,
-                div07: parseFloat(document.getElementById('calcDiv07').value) || 0.8335,
-                divCT: parseFloat(document.getElementById('calcDivCT').value) || 0.9
-            };
-            
-            // Salvar local
-            localStorage.setItem('calcParams', JSON.stringify(calcParams));
-            
-            // Salvar na nuvem
-            if (CLOUD_CONFIG.URL_SIMPLE) {
-                try {
-                    const payload = {
-                        action: 'saveConfig',
-                        key: 'calcParams',
-                        data: JSON.stringify(calcParams)
-                    };
-                    
-                    const response = await fetch(CLOUD_CONFIG.URL_SIMPLE, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        showNotification('✅ Parâmetros salvos na nuvem!', 'success');
-                    } else {
-                        showNotification('⚠️ Erro ao salvar na nuvem', 'warning');
-                    }
-                } catch (e) {
-                    showNotification('⚠️ Erro de conexão com a nuvem', 'warning');
-                }
-            } else {
-                showNotification('💾 Parâmetros salvos localmente', 'info');
-            }
-            
-            closeCalcConfig();
-        }
-        
-        function openCalcConfig() {
-            document.getElementById('calcFactor1').value = calcParams.factor1;
-            document.getElementById('calcFactor2').value = calcParams.factor2;
-            document.getElementById('calcFactor3').value = calcParams.factor3;
-            document.getElementById('calcMarkupCorte').value = calcParams.markupCorte;
-            document.getElementById('calcMarkupRolo').value = calcParams.markupRolo;
-            document.getElementById('calcDiv18').value = calcParams.div18;
-            document.getElementById('calcDiv12').value = calcParams.div12;
-            document.getElementById('calcDiv07').value = calcParams.div07;
-            document.getElementById('calcDivCT').value = calcParams.divCT;
-            updateCalcPreview();
-            document.getElementById('calcConfigModal').classList.remove('hidden');
-            
-            // Listeners para preview
-            document.querySelectorAll('#calcConfigModal input').forEach(input => {
-                input.addEventListener('input', updateCalcPreview);
-            });
-        }
-        
-        function closeCalcConfig() {
-            document.getElementById('calcConfigModal').classList.add('hidden');
-        }
-        
-        function resetCalcConfig() {
-            document.getElementById('calcFactor1').value = 2;
-            document.getElementById('calcFactor2').value = 5.60;
-            document.getElementById('calcFactor3').value = 0.82;
-            document.getElementById('calcMarkupCorte').value = 1.35;
-            document.getElementById('calcMarkupRolo').value = 1.30;
-            document.getElementById('calcDiv18').value = 0.7235;
-            document.getElementById('calcDiv12').value = 0.7835;
-            document.getElementById('calcDiv07').value = 0.8335;
-            document.getElementById('calcDivCT').value = 0.9;
-            updateCalcPreview();
-        }
-        
-        function updateCalcPreview() {
-            const f1 = parseFloat(document.getElementById('calcFactor1').value) || 0;
-            const f2 = parseFloat(document.getElementById('calcFactor2').value) || 0;
-            const f3 = parseFloat(document.getElementById('calcFactor3').value) || 0;
-            const mCorte = parseFloat(document.getElementById('calcMarkupCorte').value) || 0;
-            const mRolo = parseFloat(document.getElementById('calcMarkupRolo').value) || 0;
-            const d18 = parseFloat(document.getElementById('calcDiv18').value) || 1;
-            const d12 = parseFloat(document.getElementById('calcDiv12').value) || 1;
-            const d07 = parseFloat(document.getElementById('calcDiv07').value) || 1;
-            const dCT = parseFloat(document.getElementById('calcDivCT').value) || 1;
-            
-            const base = f1 * f2 * f3;
-            document.getElementById('commonFactorPreview').textContent = base.toFixed(4);
-            
-            const price = 100;
-            const nCorte = base * mCorte * price;
-            const nRolo = base * mRolo * price;
-            
-            document.getElementById('preview18CRT').textContent = fmt(nCorte / d18);
-            document.getElementById('preview18ROL').textContent = fmt(nRolo / d18);
-            document.getElementById('preview12CRT').textContent = fmt(nCorte / d12);
-            document.getElementById('preview12ROL').textContent = fmt(nRolo / d12);
-            document.getElementById('preview7CRT').textContent = fmt(nCorte / d07);
-            document.getElementById('preview7ROL').textContent = fmt(nRolo / d07);
-            document.getElementById('previewCTCRT').textContent = fmt(nCorte / dCT);
-            document.getElementById('previewCTROL').textContent = fmt(nRolo / dCT);
-        }
-        
-        // ========== SIMULADOR ==========
-        function openSimulator() {
-            calculateSimulation();
-            document.getElementById('simulatorModal').classList.remove('hidden');
-        }
-        
-        function closeSimulator() {
-            document.getElementById('simulatorModal').classList.add('hidden');
-        }
-        
-        function calculateSimulation() {
-            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
-            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
-            
-            document.getElementById('simFactorBase').textContent = base.toFixed(4);
-            document.getElementById('simShowF1').textContent = calcParams.factor1;
-            document.getElementById('simShowF2').textContent = calcParams.factor2;
-            document.getElementById('simShowF3').textContent = calcParams.factor3;
-            document.getElementById('simShowBase').textContent = base.toFixed(4);
-            
-            const nCorte = base * calcParams.markupCorte * price;
-            const nRolo = base * calcParams.markupRolo * price;
-            
-            document.getElementById('simCard18CRT').textContent = fmt(nCorte / calcParams.div18);
-            document.getElementById('simCard18ROL').textContent = fmt(nRolo / calcParams.div18);
-            document.getElementById('simCard12CRT').textContent = fmt(nCorte / calcParams.div12);
-            document.getElementById('simCard12ROL').textContent = fmt(nRolo / calcParams.div12);
-            document.getElementById('simCard7CRT').textContent = fmt(nCorte / calcParams.div07);
-            document.getElementById('simCard7ROL').textContent = fmt(nRolo / calcParams.div07);
-            document.getElementById('simCardCTCRT').textContent = fmt(nCorte / calcParams.divCT);
-            document.getElementById('simCardCTROL').textContent = fmt(nRolo / calcParams.divCT);
-        }
-        
-        function copySimulationResult() {
-            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
-            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
-            const nCorte = base * calcParams.markupCorte * price;
-            const nRolo = base * calcParams.markupRolo * price;
-            
-            const text = `SIMULADOR $/m² ${price}
-18% CRT: ${fmt(nCorte / calcParams.div18)}
-18% ROL: ${fmt(nRolo / calcParams.div18)}
-12% CRT: ${fmt(nCorte / calcParams.div12)}
-12% ROL: ${fmt(nRolo / calcParams.div12)}
-7% CRT: ${fmt(nCorte / calcParams.div07)}
-7% ROL: ${fmt(nRolo / calcParams.div07)}
-CT CRT: ${fmt(nCorte / calcParams.divCT)}
-CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
-            
-            navigator.clipboard.writeText(text).then(() => {
-                showNotification('📋 Resultados copiados!', 'success');
-            });
-        }
-        
-        // ========== UTILITÁRIOS ==========
-        function fmt(n) {
-            if (n === null || n === undefined || isNaN(n)) return '-';
-            return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-        
-        function parseNum(v) {
-            if (v === null || v === undefined) return 0;
-            if (typeof v === 'number') return v;
-            let s = String(v).replace(/[R$\s]/g, '').trim();
-            if (s.includes(',') && s.includes('.')) {
-                s = s.replace(/\./g, '').replace(',', '.');
-            } else if (s.includes(',')) {
-                s = s.replace(',', '.');
-            }
-            return parseFloat(s) || 0;
-        }
-        
-        // ========== MODOS E ARQUIVOS ==========
+
+        // ========== MODO DE OPERAÇÃO ==========
         function selectMode(mode) {
             operationMode = mode;
             document.getElementById('modeSelection').classList.add('hidden');
@@ -1060,79 +720,84 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
                 document.getElementById('compareUpload').classList.remove('hidden');
             }
         }
-        
+
         function backToMode() {
-            document.getElementById('modeSelection').classList.remove('hidden');
             document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('modeSelection').classList.remove('hidden');
         }
-        
+
+        function backToAnalysis() {
+            document.getElementById('reportSection').classList.add('hidden');
+            document.getElementById('analysisSection').classList.remove('hidden');
+            if (operationMode === 'compare') {
+                document.getElementById('compareSummary').classList.remove('hidden');
+            }
+        }
+
+        // ========== UPLOAD DE ARQUIVOS ==========
+        let fileSimple = null, fileCurrent = null, fileNew = null;
+
         function handleFileSelect(input, type) {
             const file = input.files[0];
             if (!file) return;
             
-            const name = file.name;
             if (type === 'simple') {
                 fileSimple = file;
-                document.getElementById('fileSimpleName').textContent = '✓ ' + name;
+                document.getElementById('fileSimpleName').textContent = '✓ ' + file.name;
+                currentFileNames = file.name;
             } else if (type === 'current') {
                 fileCurrent = file;
-                document.getElementById('fileCurrentName').textContent = '✓ ' + name;
+                document.getElementById('fileCurrentName').textContent = '✓ ' + file.name;
             } else if (type === 'new') {
                 fileNew = file;
-                document.getElementById('fileNewName').textContent = '✓ ' + name;
+                document.getElementById('fileNewName').textContent = '✓ ' + file.name;
+                currentFileNames = `${fileCurrent?.name || 'atual'} vs ${file.name}`;
             }
         }
-        
-        function downloadTemplate() {
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet([
-                ['CÓDIGO SILÓGICA', 'MATERIAL', 'MALHA', 'FIO/mm', 'LARGURA', '$/m2']
-            ]);
-            XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
-            XLSX.writeFile(wb, 'modelo_central_mesh.xlsx');
-        }
-        
+
         async function processFiles() {
             try {
                 if (operationMode === 'simple') {
-                    if (!fileSimple) {
-                        showNotification('Selecione um arquivo', 'warning');
-                        return;
-                    }
+                    if (!fileSimple) { showNotification('Selecione um arquivo Excel', 'warning'); return; }
                     data = await readExcelFile(fileSimple);
-                    analyzeData();
+                    analyzeSimpleData();
                 } else {
-                    if (!fileCurrent || !fileNew) {
-                        showNotification('Selecione ambos os arquivos', 'warning');
-                        return;
-                    }
+                    if (!fileCurrent || !fileNew) { showNotification('Selecione ambos os arquivos', 'warning'); return; }
                     currentData = await readExcelFile(fileCurrent);
                     newData = await readExcelFile(fileNew);
-                    compareData();
+                    currentFileNames = `${fileCurrent.name} vs ${fileNew.name}`;
+                    analyzeCompareData();
                 }
                 
-                renderAnalysis();
                 document.getElementById('uploadSection').classList.add('hidden');
                 document.getElementById('analysisSection').classList.remove('hidden');
                 
                 if (operationMode === 'compare') {
-                    document.getElementById('compareStats').classList.remove('hidden');
+                    document.getElementById('compareSummary').classList.remove('hidden');
+                    updateCompareSummary();
                 }
                 
-            } catch (e) {
-                showNotification('Erro ao processar: ' + e.message, 'error');
+                renderAnalysisTable();
+                populateFilters();
+                showNotification('Análise concluída!', 'success');
+                
+            } catch (error) {
+                showNotification('Erro ao processar: ' + error.message, 'error');
+                console.error(error);
             }
         }
-        
-        function readExcelFile(file) {
+
+        async function readExcelFile(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                        const ws = wb.Sheets[wb.SheetNames[0]];
-                        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                        resolve(parseRows(rows));
+                        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        const parsed = parseExcelData(jsonData);
+                        resolve(parsed);
                     } catch (err) {
                         reject(err);
                     }
@@ -1141,66 +806,69 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
                 reader.readAsArrayBuffer(file);
             });
         }
-        
-        function parseRows(rows) {
-            if (rows.length < 2) return [];
+
+        function parseExcelData(rows) {
+            if (rows.length < 2) throw new Error('Arquivo vazio ou sem dados');
             
-            const h = rows[0].map(x => String(x || '').toUpperCase().trim());
+            const headers = rows[0].map(h => String(h || '').toUpperCase().trim());
             
-            const findCol = (keys) => {
-                for (let i = 0; i < h.length; i++) {
-                    for (let k of keys) {
-                        if (h[i].includes(k)) return i;
+            const findCol = (keywords) => {
+                for (let i = 0; i < headers.length; i++) {
+                    for (let kw of keywords) {
+                        if (headers[i].includes(kw)) return i;
                     }
                 }
                 return -1;
             };
             
-            const iCode = findCol(['CÓDIGO', 'CODIGO', 'COD']);
-            const iMat = findCol(['MATERIAL', 'MAT']);
-            const iMesh = findCol(['MALHA']);
-            const iWire = findCol(['FIO']);
-            const iWidth = findCol(['LARGURA', 'LARG']);
-            const iPrice = findCol(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'M2']);
+            const colCode = findCol(['CÓDIGO', 'CODIGO', 'COD', 'SKU']);
+            const colMaterial = findCol(['MATERIAL', 'MAT', 'TIPO']);
+            const colMesh = findCol(['MALHA', 'MESH']);
+            const colWire = findCol(['FIO', 'WIRE', 'DIÂMETRO', 'DIAMETRO']);
+            const colWidth = findCol(['LARGURA', 'LARG', 'WIDTH']);
+            const colPrice = findCol(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'VALOR', 'M2', 'USD']);
             
-            if (iMat === -1 || iPrice === -1) {
-                throw new Error('Colunas MATERIAL e $/m2 não encontradas');
+            if (colMaterial === -1 || colPrice === -1) {
+                throw new Error('Colunas MATERIAL e $/m2 não encontradas!');
             }
             
             const result = [];
             for (let i = 1; i < rows.length; i++) {
-                const r = rows[i];
-                if (!r || !r.length) continue;
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
                 
-                const price = parseNum(r[iPrice]);
-                const material = r[iMat];
+                const material = row[colMaterial];
+                const priceRaw = row[colPrice];
                 
-                if (!material && price === 0) continue;
+                if (!material && !priceRaw) continue;
+                
+                const price = parseFloat(String(priceRaw || '0').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
                 
                 result.push({
                     id: i,
-                    code: String(r[iCode] || '-').trim(),
+                    code: row[colCode] || '-',
                     material: String(material || 'N/A').trim(),
-                    mesh: String(r[iMesh] || '-').trim(),
-                    wire: String(r[iWire] || '-').trim(),
-                    width: String(r[iWidth] || '-').trim(),
+                    mesh: String(row[colMesh] || '-').trim(),
+                    wire: String(row[colWire] || '-').trim(),
+                    width: String(row[colWidth] || '-').trim(),
                     price: price,
                     originalPrice: price,
                     priceOld: null,
-                    isEmpty: price === 0,
-                    isEdited: false,
+                    changeType: null,
+                    variation: null,
                     anomaly: false,
                     reasons: [],
-                    changeType: null,
-                    pendingRemoval: false
+                    isEdited: false,
+                    isEmpty: price === 0
                 });
             }
+            
             return result;
         }
-        
-        // ========== ANÁLISE ==========
-        function analyzeData() {
-            // Agrupar por Material + Malha + Fio
+
+        // ========== ANÁLISE SIMPLES ==========
+        function analyzeSimpleData() {
+            // Agrupar por material + malha + fio
             const groups = {};
             data.forEach(item => {
                 const key = `${item.material}|${item.mesh}|${item.wire}`;
@@ -1208,216 +876,414 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
                 groups[key].push(item);
             });
             
-            // Verificar variações
-            for (let key in groups) {
-                const g = groups[key];
-                if (g.length < 2) continue;
+            // Analisar cada grupo
+            Object.values(groups).forEach(group => {
+                if (group.length < 2) return;
                 
-                const prices = g.filter(x => x.price > 0).map(x => x.price);
-                if (prices.length === 0) continue;
+                const prices = group.filter(i => i.price > 0).map(i => i.price);
+                if (prices.length === 0) return;
                 
                 const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
                 
-                g.forEach(item => {
+                group.forEach(item => {
                     if (item.price > 0 && avg > 0) {
                         const diff = Math.abs((item.price - avg) / avg);
                         if (diff > 0.15) {
                             item.anomaly = true;
-                            item.reasons.push(`Preço ${Math.round(diff * 100)}% ${item.price > avg ? 'acima' : 'abaixo'} da média`);
+                            item.reasons.push(`Desvio de ${Math.round(diff * 100)}% da média do grupo ($${avg.toFixed(2)})`);
                         }
                     }
+                    
+                    if (item.price === 0) {
+                        item.anomaly = true;
+                        item.isEmpty = true;
+                        item.reasons.push('Preço em branco');
+                    }
                 });
-            }
+            });
             
-            // Marcar vazios
+            // Análise de hierarquia de materiais
+            analyzeMaterialHierarchy();
+        }
+
+        function analyzeMaterialHierarchy() {
+            const getMaterialScore = (mat) => {
+                const m = String(mat).toUpperCase();
+                if (m.includes('316')) return 40;
+                if (m.includes('304')) return 30;
+                if (m.includes('302')) return 20;
+                if (m.includes('GALV')) return 15;
+                if (m.includes('CARB')) return 10;
+                return 5;
+            };
+            
+            // Agrupar por malha + fio + largura
+            const specGroups = {};
             data.forEach(item => {
-                if (item.price === 0) {
-                    item.isEmpty = true;
-                    item.anomaly = true;
-                    item.reasons.push('Preço em branco');
+                const key = `${item.mesh}|${item.wire}|${item.width}`;
+                if (!specGroups[key]) specGroups[key] = [];
+                specGroups[key].push(item);
+            });
+            
+            Object.values(specGroups).forEach(group => {
+                if (group.length < 2) return;
+                
+                group.sort((a, b) => getMaterialScore(a.material) - getMaterialScore(b.material));
+                
+                for (let i = 0; i < group.length - 1; i++) {
+                    const lower = group[i];
+                    const higher = group[i + 1];
+                    
+                    if (lower.price > higher.price * 1.05 && lower.price > 0 && higher.price > 0) {
+                        lower.anomaly = true;
+                        lower.reasons.push(`Incoerência: ${lower.material} ($${lower.price.toFixed(2)}) mais caro que ${higher.material} ($${higher.price.toFixed(2)})`);
+                        
+                        higher.anomaly = true;
+                        higher.reasons.push(`Verificar: ${higher.material} ($${higher.price.toFixed(2)}) mais barato que ${lower.material} ($${lower.price.toFixed(2)})`);
+                    }
                 }
             });
-            
-            updateStats();
         }
-        
-        function compareData() {
-            const currentMap = {};
-            currentData.forEach(item => {
-                const key = `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
-                currentMap[key] = item;
-            });
-            
+
+        // ========== ANÁLISE COMPARATIVA ==========
+        function analyzeCompareData() {
             data = [];
             
+            const createKey = (item) => {
+                return `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
+            };
+            
+            const currentMap = {};
+            currentData.forEach(item => {
+                currentMap[createKey(item)] = item;
+            });
+            
+            // Processar nova tabela
             newData.forEach(item => {
-                const key = `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
-                const curr = currentMap[key];
+                const key = createKey(item);
+                const current = currentMap[key];
                 
-                if (curr) {
-                    item.priceOld = curr.price;
-                    if (Math.abs(item.price - curr.price) > 0.01) {
-                        item.changeType = 'changed';
-                        item.anomaly = true;
-                        item.reasons.push('Preço alterado');
+                const newItem = { ...item };
+                
+                if (current) {
+                    newItem.priceOld = current.price;
+                    if (Math.abs(item.price - current.price) > 0.01) {
+                        newItem.changeType = 'changed';
+                        newItem.variation = current.price > 0 ? ((item.price - current.price) / current.price * 100) : 0;
                     }
                     delete currentMap[key];
                 } else {
-                    item.changeType = 'new';
-                    item.anomaly = true;
-                    item.reasons.push('Item novo');
+                    newItem.changeType = 'new';
                 }
                 
                 if (item.price === 0) {
-                    item.isEmpty = true;
-                    item.reasons.push('Preço em branco');
+                    newItem.isEmpty = true;
+                    newItem.anomaly = true;
+                    newItem.reasons.push('Preço em branco');
                 }
                 
-                data.push(item);
+                data.push(newItem);
             });
             
             // Itens removidos
-            for (let key in currentMap) {
-                const item = currentMap[key];
-                item.changeType = 'removed';
-                item.pendingRemoval = true;
-                item.anomaly = true;
-                item.reasons.push('Item não existe na nova tabela');
-                data.push(item);
-            }
+            Object.values(currentMap).forEach(item => {
+                const removedItem = { ...item };
+                removedItem.changeType = 'removed';
+                removedItem.priceOld = item.price;
+                data.push(removedItem);
+            });
             
-            updateStats();
+            // Análises adicionais
+            analyzeSimpleData();
         }
-        
-        function updateStats() {
-            document.getElementById('totalCount').textContent = data.length;
-            document.getElementById('reviewCount').textContent = data.filter(x => x.anomaly && !x.isEmpty).length;
-            document.getElementById('emptyCount').textContent = data.filter(x => x.isEmpty).length;
+
+        function updateCompareSummary() {
+            const total = data.length;
+            const changed = data.filter(i => i.changeType === 'changed').length;
+            const newItems = data.filter(i => i.changeType === 'new').length;
+            const removed = data.filter(i => i.changeType === 'removed').length;
+            const review = data.filter(i => i.anomaly).length;
             
-            if (operationMode === 'compare') {
-                document.getElementById('changedCount').textContent = data.filter(x => x.changeType === 'changed').length;
-                document.getElementById('newCount').textContent = data.filter(x => x.changeType === 'new').length;
-            }
+            // Calcular variação média
+            const withVariation = data.filter(i => i.variation !== null && i.variation !== undefined);
+            const avgVariation = withVariation.length > 0 
+                ? withVariation.reduce((sum, i) => sum + i.variation, 0) / withVariation.length 
+                : 0;
+            
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statChanged').textContent = changed;
+            document.getElementById('statNew').textContent = newItems;
+            document.getElementById('statRemoved').textContent = removed;
+            document.getElementById('statReview').textContent = review;
+            document.getElementById('statVariation').textContent = (avgVariation >= 0 ? '+' : '') + avgVariation.toFixed(1) + '%';
+            document.getElementById('statVariation').className = avgVariation >= 0 ? 'text-3xl font-bold text-red-600' : 'text-3xl font-bold text-emerald-600';
+            
+            // Resumo por material
+            const byMaterial = {};
+            data.forEach(item => {
+                if (!byMaterial[item.material]) {
+                    byMaterial[item.material] = { total: 0, changed: 0, variations: [] };
+                }
+                byMaterial[item.material].total++;
+                if (item.changeType === 'changed') {
+                    byMaterial[item.material].changed++;
+                    if (item.variation !== null) {
+                        byMaterial[item.material].variations.push(item.variation);
+                    }
+                }
+            });
+            
+            let groupHtml = '';
+            Object.entries(byMaterial).sort((a, b) => b[1].changed - a[1].changed).forEach(([mat, stats]) => {
+                const avgVar = stats.variations.length > 0 
+                    ? stats.variations.reduce((a, b) => a + b, 0) / stats.variations.length 
+                    : 0;
+                const varClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
+                const varIcon = avgVar >= 0 ? '▲' : '▼';
+                
+                groupHtml += `
+                    <div class="bg-white rounded-lg p-3 shadow-sm border">
+                        <div class="font-bold text-slate-800 truncate">${mat}</div>
+                        <div class="text-xs text-slate-500">${stats.total} itens | ${stats.changed} alterados</div>
+                        ${stats.changed > 0 ? `<div class="text-sm font-bold ${varClass}">${varIcon} ${Math.abs(avgVar).toFixed(1)}%</div>` : ''}
+                    </div>
+                `;
+            });
+            document.getElementById('groupSummary').innerHTML = groupHtml;
+            
+            // Resumo por malha
+            const byMesh = {};
+            data.forEach(item => {
+                if (!byMesh[item.mesh]) {
+                    byMesh[item.mesh] = { total: 0, changed: 0, variations: [] };
+                }
+                byMesh[item.mesh].total++;
+                if (item.changeType === 'changed') {
+                    byMesh[item.mesh].changed++;
+                    if (item.variation !== null) {
+                        byMesh[item.mesh].variations.push(item.variation);
+                    }
+                }
+            });
+            
+            let meshHtml = '';
+            Object.entries(byMesh).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([mesh, stats]) => {
+                const avgVar = stats.variations.length > 0 
+                    ? stats.variations.reduce((a, b) => a + b, 0) / stats.variations.length 
+                    : 0;
+                const varClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
+                const varIcon = avgVar >= 0 ? '▲' : '▼';
+                
+                meshHtml += `
+                    <div class="bg-white rounded-lg p-2 shadow-sm border text-center">
+                        <div class="font-bold text-slate-800">Malha ${mesh}</div>
+                        <div class="text-xs text-slate-500">${stats.changed}/${stats.total} alt.</div>
+                        ${stats.changed > 0 ? `<div class="text-sm font-bold ${varClass}">${varIcon} ${Math.abs(avgVar).toFixed(1)}%</div>` : '<div class="text-xs text-slate-300">-</div>'}
+                    </div>
+                `;
+            });
+            document.getElementById('meshSummary').innerHTML = meshHtml;
         }
-        
-        // ========== RENDERIZAÇÃO ==========
-        function renderAnalysis() {
+
+        // ========== RENDERIZAÇÃO DA TABELA ==========
+        function renderAnalysisTable() {
             const tbody = document.getElementById('analysisTableBody');
             tbody.innerHTML = '';
             
-            // Popular filtros
-            populateFilters();
+            data.sort((a, b) => {
+                const matA = String(a.material || '');
+                const matB = String(b.material || '');
+                if (matA !== matB) return matA.localeCompare(matB);
+                return (parseFloat(a.mesh) || 0) - (parseFloat(b.mesh) || 0);
+            });
             
             data.forEach((item, idx) => {
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-idx', idx);
+                tr.setAttribute('data-material', item.material);
+                tr.setAttribute('data-mesh', item.mesh);
+                tr.setAttribute('data-wire', item.wire);
+                tr.setAttribute('data-status', getItemStatus(item));
                 
-                // Classes baseadas no status
-                let rowClass = 'transition-colors';
-                if (item.isEmpty) rowClass += ' bg-red-50';
-                else if (item.isEdited) rowClass += ' bg-amber-50';
-                else if (item.pendingRemoval) rowClass += ' bg-yellow-50';
-                else if (item.changeType === 'new') rowClass += ' bg-emerald-50';
-                else if (item.changeType === 'changed') rowClass += ' bg-blue-50';
-                else if (item.anomaly) rowClass += ' bg-red-50';
+                // Definir classe da linha
+                let rowClass = 'hover:bg-slate-50';
+                if (item.isEmpty) rowClass = 'bg-orange-50';
+                else if (item.changeType === 'removed') rowClass = 'bg-red-50';
+                else if (item.changeType === 'new') rowClass = 'bg-emerald-50';
+                else if (item.changeType === 'changed') rowClass = 'bg-blue-50';
+                else if (item.anomaly) rowClass = 'bg-amber-50';
+                else if (item.isEdited) rowClass = 'bg-purple-50';
+                
                 tr.className = rowClass;
                 
                 // Status badge
                 let statusBadge = '';
-                if (item.isEmpty) statusBadge = '<span class="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Vazio</span>';
-                else if (item.isEdited) statusBadge = '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">Editado</span>';
-                else if (item.pendingRemoval) statusBadge = '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Remover?</span>';
-                else if (item.changeType === 'new') statusBadge = '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Novo</span>';
-                else if (item.changeType === 'changed') statusBadge = '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Alterado</span>';
-                else if (item.anomaly) statusBadge = '<span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Revisar</span>';
-                else statusBadge = '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">OK</span>';
+                if (item.isEmpty) {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-orange-200 text-orange-800">Vazio</span>';
+                } else if (item.changeType === 'removed') {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-200 text-red-800">Removido</span>';
+                } else if (item.changeType === 'new') {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-200 text-emerald-800">Novo</span>';
+                } else if (item.changeType === 'changed') {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-200 text-blue-800">Alterado</span>';
+                } else if (item.anomaly) {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-amber-200 text-amber-800">Revisar</span>';
+                } else if (item.isEdited) {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-purple-200 text-purple-800">Editado</span>';
+                } else {
+                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">OK</span>';
+                }
                 
                 // Variação
-                let variation = '-';
-                if (item.priceOld !== null && item.priceOld > 0) {
-                    const pct = ((item.price - item.priceOld) / item.priceOld) * 100;
-                    const color = pct > 0 ? 'text-red-600' : 'text-emerald-600';
-                    variation = `<span class="${color} font-medium">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%</span>`;
+                let variationHtml = '-';
+                if (item.variation !== null && item.variation !== undefined) {
+                    const varClass = item.variation >= 0 ? 'variation-up' : 'variation-down';
+                    const varIcon = item.variation >= 0 ? '▲' : '▼';
+                    variationHtml = `<span class="${varClass}">${varIcon} ${item.variation >= 0 ? '+' : ''}${item.variation.toFixed(1)}%</span>`;
+                } else if (item.changeType === 'new') {
+                    variationHtml = '<span class="variation-new">NOVO</span>';
                 }
                 
-                // Ações
-                let actions = '';
-                if (item.pendingRemoval) {
-                    actions = `
-                        <button onclick="confirmRemoval(${idx})" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded mr-1">Remover</button>
-                        <button onclick="keepItem(${idx})" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded">Manter</button>
-                    `;
-                } else if (item.isEdited) {
-                    actions = `<button onclick="resetPrice(${idx})" class="text-xs bg-slate-500 hover:bg-slate-600 text-white px-2 py-1 rounded">Desfazer</button>`;
-                }
+                // Motivos (legíveis)
+                const reasonsText = item.reasons.length > 0 ? item.reasons.join(' | ') : '-';
                 
                 tr.innerHTML = `
                     <td class="p-3">${statusBadge}</td>
-                    <td class="p-3 font-mono text-slate-500 text-xs">${item.code}</td>
-                    <td class="p-3 font-medium text-slate-800">${item.material}</td>
+                    <td class="p-3 font-mono text-xs">${item.code}</td>
+                    <td class="p-3 font-medium">${item.material}</td>
                     <td class="p-3 text-center">${item.mesh}</td>
                     <td class="p-3 text-center">${item.wire}</td>
                     <td class="p-3 text-center">${item.width}</td>
-                    <td class="p-3 text-center text-slate-500">${item.priceOld !== null ? '$' + fmt(item.priceOld) : '-'}</td>
-                    <td class="p-3 text-center font-medium">${item.price > 0 ? '$' + fmt(item.price) : '-'}</td>
-                    <td class="p-3 text-center">${variation}</td>
-                    <td class="p-3 text-center bg-amber-50">
+                    <td class="p-3 text-center text-slate-400">${item.priceOld !== null ? formatNumber(item.priceOld) : '-'}</td>
+                    <td class="p-3 text-center font-bold">${formatNumber(item.price)}</td>
+                    <td class="p-3 text-center">${variationHtml}</td>
+                    <td class="p-3 bg-amber-50">
                         <input type="number" step="0.01" value="${item.price || ''}" 
-                            onchange="updatePrice(${idx}, this.value)" 
-                            class="price-input w-20 p-1.5 border rounded-lg text-center font-medium ${item.isEmpty ? 'empty' : ''} ${item.isEdited ? 'changed' : ''}">
+                            onchange="updatePrice(${idx}, this.value)"
+                            class="w-20 p-1 text-center border rounded text-sm font-bold">
                     </td>
-                    <td class="p-3 text-xs text-red-600">${item.reasons.join(', ')}</td>
-                    <td class="p-3 text-center">${actions}</td>
+                    <td class="p-3 reason-cell text-xs text-slate-600" title="${reasonsText}">${reasonsText}</td>
+                    <td class="p-3 text-center">
+                        ${item.anomaly || item.isEmpty ? `<button onclick="approveItem(${idx})" class="px-2 py-1 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded">Aprovar</button>` : ''}
+                    </td>
                 `;
+                
                 tbody.appendChild(tr);
             });
             
-            updateStats();
+            updateAnalysisStats();
         }
-        
+
+        function getItemStatus(item) {
+            if (item.anomaly || item.isEmpty) return 'review';
+            if (item.changeType === 'changed') return 'changed';
+            if (item.changeType === 'new') return 'new';
+            if (item.changeType === 'removed') return 'removed';
+            return 'ok';
+        }
+
+        function updateAnalysisStats() {
+            const total = data.length;
+            const review = data.filter(i => i.anomaly || i.isEmpty).length;
+            const edited = data.filter(i => i.isEdited).length;
+            document.getElementById('analysisStats').textContent = `Total: ${total} itens | Para revisão: ${review} | Editados: ${edited}`;
+        }
+
+        // ========== EDIÇÃO E APROVAÇÃO ==========
+        function updatePrice(idx, value) {
+            const item = data[idx];
+            const newPrice = parseFloat(value) || 0;
+            
+            item.price = newPrice;
+            item.isEdited = newPrice !== item.originalPrice;
+            item.isEmpty = newPrice === 0;
+            
+            if (newPrice > 0 && item.isEmpty) {
+                item.anomaly = false;
+                item.reasons = item.reasons.filter(r => r !== 'Preço em branco');
+            }
+            
+            // Re-renderizar apenas essa linha
+            renderAnalysisTable();
+            applyFilters();
+        }
+
+        function approveItem(idx) {
+            const item = data[idx];
+            item.anomaly = false;
+            item.reasons = [];
+            
+            renderAnalysisTable();
+            applyFilters();
+            showNotification('Item aprovado!', 'success');
+        }
+
+        function approveAllVisible() {
+            const visibleRows = document.querySelectorAll('#analysisTableBody tr:not([style*="display: none"])');
+            let count = 0;
+            
+            visibleRows.forEach(row => {
+                const idx = parseInt(row.getAttribute('data-idx'));
+                if (data[idx] && (data[idx].anomaly || data[idx].isEmpty)) {
+                    data[idx].anomaly = false;
+                    data[idx].reasons = [];
+                    count++;
+                }
+            });
+            
+            renderAnalysisTable();
+            applyFilters();
+            showNotification(`${count} itens aprovados!`, 'success');
+        }
+
+        // ========== FILTROS ==========
         function populateFilters() {
-            const materials = [...new Set(data.map(x => x.material))].sort();
-            const meshes = [...new Set(data.map(x => x.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
-            const wires = [...new Set(data.map(x => x.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            const materials = [...new Set(data.map(i => i.material))].filter(Boolean).sort();
+            const meshes = [...new Set(data.map(i => i.mesh))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
+            const wires = [...new Set(data.map(i => i.wire))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
             
-            const selMat = document.getElementById('filterMaterial');
-            const selMesh = document.getElementById('filterMesh');
-            const selWire = document.getElementById('filterWire');
+            const matSelect = document.getElementById('filterMaterial');
+            const meshSelect = document.getElementById('filterMesh');
+            const wireSelect = document.getElementById('filterWire');
             
-            selMat.innerHTML = '<option value="">Todos Materiais</option>' + materials.map(m => `<option value="${m}">${m}</option>`).join('');
-            selMesh.innerHTML = '<option value="">Todas Malhas</option>' + meshes.map(m => `<option value="${m}">${m}</option>`).join('');
-            selWire.innerHTML = '<option value="">Todos Fios</option>' + wires.map(w => `<option value="${w}">${w}</option>`).join('');
+            matSelect.innerHTML = '<option value="">Todos Materiais</option>' + 
+                materials.map(m => `<option value="${m}">${m}</option>`).join('');
+            
+            meshSelect.innerHTML = '<option value="">Todas Malhas</option>' + 
+                meshes.map(m => `<option value="${m}">${m}</option>`).join('');
+            
+            wireSelect.innerHTML = '<option value="">Todos Fios</option>' + 
+                wires.map(w => `<option value="${w}">${w}</option>`).join('');
         }
-        
+
         function applyFilters() {
-            const mat = document.getElementById('filterMaterial').value;
+            const material = document.getElementById('filterMaterial').value;
             const mesh = document.getElementById('filterMesh').value;
             const wire = document.getElementById('filterWire').value;
             const status = document.getElementById('filterStatus').value;
             
+            const rows = document.querySelectorAll('#analysisTableBody tr');
             let visible = 0;
-            document.querySelectorAll('#analysisTableBody tr').forEach(row => {
-                const idx = parseInt(row.getAttribute('data-idx'));
-                const item = data[idx];
+            
+            rows.forEach(row => {
+                const rowMat = row.getAttribute('data-material');
+                const rowMesh = row.getAttribute('data-mesh');
+                const rowWire = row.getAttribute('data-wire');
+                const rowStatus = row.getAttribute('data-status');
                 
                 let show = true;
-                if (mat && item.material !== mat) show = false;
-                if (mesh && item.mesh !== mesh) show = false;
-                if (wire && item.wire !== wire) show = false;
-                
-                if (status === 'review' && !item.anomaly) show = false;
-                if (status === 'empty' && !item.isEmpty) show = false;
-                if (status === 'changed' && item.changeType !== 'changed') show = false;
-                if (status === 'new' && item.changeType !== 'new') show = false;
-                if (status === 'ok' && (item.anomaly || item.isEmpty)) show = false;
+                if (material && rowMat !== material) show = false;
+                if (mesh && rowMesh !== mesh) show = false;
+                if (wire && rowWire !== wire) show = false;
+                if (status && rowStatus !== status) show = false;
                 
                 row.style.display = show ? '' : 'none';
                 if (show) visible++;
             });
             
-            document.getElementById('filteredInfo').textContent = `Exibindo: ${visible} itens`;
+            document.getElementById('filteredInfo').textContent = `Exibindo ${visible} de ${data.length} itens`;
         }
-        
+
         function clearFilters() {
             document.getElementById('filterMaterial').value = '';
             document.getElementById('filterMesh').value = '';
@@ -1425,76 +1291,296 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
             document.getElementById('filterStatus').value = '';
             applyFilters();
         }
-        
-        function updatePrice(idx, value) {
-            const item = data[idx];
-            const newPrice = parseFloat(value) || 0;
-            item.price = newPrice;
-            item.isEdited = newPrice !== item.originalPrice;
-            item.isEmpty = newPrice === 0;
-            renderAnalysis();
-            applyFilters();
-        }
-        
-        function resetPrice(idx) {
-            const item = data[idx];
-            item.price = item.originalPrice;
-            item.isEdited = false;
-            item.isEmpty = item.price === 0;
-            renderAnalysis();
-            applyFilters();
-        }
-        
-        function confirmRemoval(idx) {
-            data[idx].pendingRemoval = false;
-            data[idx].changeType = 'removed_confirmed';
-            renderAnalysis();
-            applyFilters();
-        }
-        
-        function keepItem(idx) {
-            data[idx].pendingRemoval = false;
-            data[idx].changeType = null;
-            data[idx].anomaly = false;
-            data[idx].reasons = [];
-            renderAnalysis();
-            applyFilters();
-        }
-        
-        function approveAllVisible() {
-            let count = 0;
-            document.querySelectorAll('#analysisTableBody tr').forEach(row => {
-                if (row.style.display === 'none') return;
-                const idx = parseInt(row.getAttribute('data-idx'));
-                const item = data[idx];
-                if (item.anomaly && !item.isEmpty && !item.pendingRemoval) {
-                    item.anomaly = false;
-                    item.reasons = [];
-                    count++;
-                }
+
+        // ========== RELATÓRIO ==========
+        function generateReport() {
+            // Salvar antes de gerar
+            saveToLocal();
+            saveToCloud();
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('reportDate').textContent = `Gerado em: ${dateStr}`;
+            document.getElementById('footerDate').textContent = dateStr;
+            
+            // Filtrar apenas itens válidos (não removidos)
+            const reportData = data.filter(i => i.changeType !== 'removed' && !i.isEmpty);
+            
+            // Ordenar
+            reportData.sort((a, b) => {
+                const matA = String(a.material || '');
+                const matB = String(b.material || '');
+                if (matA !== matB) return matA.localeCompare(matB);
+                return (parseFloat(a.mesh) || 0) - (parseFloat(b.mesh) || 0);
             });
-            renderAnalysis();
-            applyFilters();
-            showNotification(`✓ ${count} itens aprovados`, 'success');
+            
+            // Preencher filtros da publicação
+            const materials = [...new Set(reportData.map(i => i.material))].filter(Boolean).sort();
+            const meshes = [...new Set(reportData.map(i => i.mesh))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
+            const wires = [...new Set(reportData.map(i => i.wire))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            document.getElementById('pubFilterMaterial').innerHTML = '<option value="">Todos Materiais</option>' + 
+                materials.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('pubFilterMesh').innerHTML = '<option value="">Todas Malhas</option>' + 
+                meshes.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('pubFilterWire').innerHTML = '<option value="">Todos Fios</option>' + 
+                wires.map(w => `<option value="${w}">${w}</option>`).join('');
+            
+            // Renderizar tabela
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            
+            const { f1, f2, f3, markupCorte, markupRolo, div18, div12, div07, divCT } = calcParams;
+            const base = f1 * f2 * f3;
+            
+            reportData.forEach(item => {
+                const p = item.price;
+                const numCorte = base * markupCorte * p;
+                const numRolo = base * markupRolo * p;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-blue-50 text-xs';
+                tr.setAttribute('data-code', item.code);
+                tr.setAttribute('data-material', item.material);
+                tr.setAttribute('data-mesh', item.mesh);
+                tr.setAttribute('data-wire', item.wire);
+                
+                tr.innerHTML = `
+                    <td class="p-2 border-b">${item.code}</td>
+                    <td class="p-2 border-b font-medium">${item.material}</td>
+                    <td class="p-2 border-b text-center">${item.mesh}</td>
+                    <td class="p-2 border-b text-center">${item.wire}</td>
+                    <td class="p-2 border-b text-center">${item.width}</td>
+                    <td class="p-2 border-b text-right font-bold hide-for-vendors">${formatNumber(p)}</td>
+                    <td class="p-2 border-b text-right">${formatNumber(numCorte / div18)}</td>
+                    <td class="p-2 border-b text-right">${formatNumber(numRolo / div18)}</td>
+                    <td class="p-2 border-b text-right">${formatNumber(numCorte / div12)}</td>
+                    <td class="p-2 border-b text-right">${formatNumber(numRolo / div12)}</td>
+                    <td class="p-2 border-b text-right">${formatNumber(numCorte / div07)}</td>
+                    <td class="p-2 border-b text-right">${formatNumber(numRolo / div07)}</td>
+                    <td class="p-2 border-b text-right hide-for-vendors">${formatNumber(numCorte / divCT)}</td>
+                    <td class="p-2 border-b text-right hide-for-vendors">${formatNumber(numRolo / divCT)}</td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+            
+            // Mostrar seção de relatório
+            document.getElementById('analysisSection').classList.add('hidden');
+            document.getElementById('compareSummary').classList.add('hidden');
+            document.getElementById('reportSection').classList.remove('hidden');
+            
+            showNotification('Relatório gerado com sucesso!', 'success');
         }
-        
-        // ========== SALVAR NA NUVEM ==========
+
+        // ========== FILTROS DA PUBLICAÇÃO ==========
+        function applyPubFilters() {
+            const code = document.getElementById('pubFilterCode').value.toUpperCase();
+            const material = document.getElementById('pubFilterMaterial').value;
+            const mesh = document.getElementById('pubFilterMesh').value;
+            const wire = document.getElementById('pubFilterWire').value;
+            
+            const rows = document.querySelectorAll('#reportTableBody tr');
+            let visible = 0;
+            
+            rows.forEach(row => {
+                const rowCode = row.getAttribute('data-code')?.toUpperCase() || '';
+                const rowMat = row.getAttribute('data-material');
+                const rowMesh = row.getAttribute('data-mesh');
+                const rowWire = row.getAttribute('data-wire');
+                
+                let show = true;
+                if (code && !rowCode.includes(code)) show = false;
+                if (material && rowMat !== material) show = false;
+                if (mesh && rowMesh !== mesh) show = false;
+                if (wire && rowWire !== wire) show = false;
+                
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            
+            document.getElementById('pubFilteredInfo').textContent = `Exibindo ${visible} itens`;
+        }
+
+        function clearPubFilters() {
+            document.getElementById('pubFilterCode').value = '';
+            document.getElementById('pubFilterMaterial').value = '';
+            document.getElementById('pubFilterMesh').value = '';
+            document.getElementById('pubFilterWire').value = '';
+            applyPubFilters();
+        }
+
+        // ========== PUBLICAÇÃO ==========
+        function publishComplete() {
+            document.querySelectorAll('.hide-for-vendors').forEach(el => el.style.display = '');
+            document.getElementById('reportActionsTop').classList.add('hidden');
+            document.getElementById('reportActions').classList.add('hidden');
+            document.getElementById('publicFooter').classList.remove('hidden');
+            showNotification('Modo Publicação Completa ativado', 'success');
+        }
+
+        function publishVendors() {
+            document.querySelectorAll('.hide-for-vendors').forEach(el => el.style.display = 'none');
+            document.getElementById('reportActionsTop').classList.add('hidden');
+            document.getElementById('reportActions').classList.add('hidden');
+            document.getElementById('publicFooter').classList.remove('hidden');
+            showNotification('Modo Publicação Vendedores ativado', 'success');
+        }
+
+        function exportToPDF() {
+            showNotification('Abrindo janela de impressão para salvar como PDF...', 'info');
+            setTimeout(() => window.print(), 500);
+        }
+
+        function copyEmbedCode(mode) {
+            const table = document.getElementById('reportTable').outerHTML;
+            const date = new Date().toLocaleDateString('pt-BR');
+            const hideVendors = mode === 'vendors' ? '.hide-for-vendors { display: none !important; }' : '';
+            
+            const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Central Mesh - Tabela de Preços</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+<style>
+body { font-family: 'Inter', sans-serif; }
+${hideVendors}
+</style>
+</head>
+<body class="bg-white p-6">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-6 pb-4 border-b-2 border-blue-900">
+<h1 class="text-2xl font-bold text-blue-900">TABELA OFICIAL DE PREÇOS</h1>
+<h2 class="text-lg text-slate-600">Central Mesh</h2>
+<p class="text-sm text-slate-400 mt-2">Publicado em: ${date} | Versão 7.00</p>
+</div>
+${table}
+<div class="mt-6 text-center text-slate-400 text-xs">
+<p>Central Mesh - Valores sujeitos a alteração sem aviso prévio</p>
+</div>
+</div>
+</body>
+</html>`;
+            
+            navigator.clipboard.writeText(html).then(() => {
+                showNotification('Código HTML copiado!', 'success');
+            });
+        }
+
+        // ========== SALVAMENTO LOCAL ==========
+        function saveToLocal() {
+            const key = operationMode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
+            const saveData = {
+                data: data,
+                currentData: currentData,
+                newData: newData,
+                mode: operationMode,
+                fileNames: currentFileNames,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(key, JSON.stringify(saveData));
+            showNotification('Salvo localmente!', 'success');
+        }
+
+        function loadLocalCache() {
+            const simpleCache = localStorage.getItem('centralMesh_simple');
+            const compareCache = localStorage.getItem('centralMesh_compare');
+            
+            if (simpleCache || compareCache) {
+                document.getElementById('localCacheSection').classList.remove('hidden');
+                let html = '';
+                
+                if (simpleCache) {
+                    const cache = JSON.parse(simpleCache);
+                    const date = new Date(cache.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    html += `
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-bold text-blue-800">📊 Análise Simples</p>
+                                    <p class="text-xs text-blue-600">${cache.data?.length || 0} itens | ${date}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="loadFromLocal('simple')" class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Carregar</button>
+                                    <button onclick="clearLocal('simple')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (compareCache) {
+                    const cache = JSON.parse(compareCache);
+                    const date = new Date(cache.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    html += `
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-bold text-emerald-800">🔄 Comparativo</p>
+                                    <p class="text-xs text-emerald-600">${cache.data?.length || 0} itens | ${date}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="loadFromLocal('compare')" class="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700">Carregar</button>
+                                    <button onclick="clearLocal('compare')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('localCacheList').innerHTML = html;
+            }
+        }
+
+        function loadFromLocal(mode) {
+            const key = mode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
+            const cache = JSON.parse(localStorage.getItem(key));
+            
+            if (cache) {
+                data = cache.data || [];
+                currentData = cache.currentData || [];
+                newData = cache.newData || [];
+                operationMode = cache.mode || mode;
+                currentFileNames = cache.fileNames || '';
+                
+                document.getElementById('modeSelection').classList.add('hidden');
+                document.getElementById('localCacheSection').classList.add('hidden');
+                document.getElementById('cloudAnalyses').classList.add('hidden');
+                document.getElementById('analysisSection').classList.remove('hidden');
+                
+                if (mode === 'compare') {
+                    document.getElementById('compareSummary').classList.remove('hidden');
+                    updateCompareSummary();
+                }
+                
+                renderAnalysisTable();
+                populateFilters();
+                showNotification('Cache carregado!', 'success');
+            }
+        }
+
+        function clearLocal(mode) {
+            const key = mode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
+            localStorage.removeItem(key);
+            loadLocalCache();
+            showNotification('Cache limpo!', 'info');
+        }
+
+        // ========== SALVAMENTO NA NUVEM ==========
         async function saveToCloud() {
             const url = operationMode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
             
             if (!url) {
-                showNotification('Configure a URL da nuvem', 'warning');
+                showNotification('Configure a URL da nuvem primeiro', 'warning');
                 return;
             }
-            
-            const name = prompt('Nome desta análise:');
-            if (!name) return;
             
             try {
                 const payload = {
                     action: 'save',
-                    name: name,
-                    mode: operationMode,
+                    name: currentFileNames || 'Análise ' + new Date().toLocaleDateString('pt-BR'),
+                    fileNames: currentFileNames,
                     itemCount: data.length,
                     userName: CLOUD_CONFIG.DEFAULT_USER,
                     data: data,
@@ -1505,27 +1591,28 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    redirect: 'follow'
                 });
                 
                 const result = await response.json();
+                
                 if (result.success) {
-                    showNotification('✅ Salvo na nuvem!', 'success');
-                    loadCloudAnalyses(operationMode);
+                    showNotification('Salvo na nuvem!', 'success');
                 } else {
-                    showNotification('❌ Erro: ' + (result.error || 'Desconhecido'), 'error');
+                    throw new Error(result.error || 'Erro desconhecido');
                 }
-            } catch (e) {
-                showNotification('❌ Erro de conexão', 'error');
+            } catch (error) {
+                showNotification('Erro ao salvar na nuvem: ' + error.message, 'error');
             }
         }
-        
+
         async function loadCloudAnalyses(mode) {
             const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            const container = mode === 'compare' ? document.getElementById('compareAnalysesList') : document.getElementById('simpleAnalysesList');
+            const listId = mode === 'compare' ? 'compareAnalysesList' : 'simpleAnalysesList';
             
             if (!url) {
-                container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">URL não configurada</p>';
+                document.getElementById(listId).innerHTML = '<p class="text-sm text-slate-400 text-center">URL não configurada</p>';
                 return;
             }
             
@@ -1534,30 +1621,33 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
                 const analyses = await response.json();
                 
                 if (!Array.isArray(analyses) || analyses.length === 0) {
-                    container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Nenhuma análise salva</p>';
+                    document.getElementById(listId).innerHTML = '<p class="text-sm text-slate-400 text-center">Nenhuma análise salva</p>';
                     return;
                 }
                 
-                container.innerHTML = analyses.slice(0, 5).map(a => {
-                    const date = new Date(a.timestamp).toLocaleString('pt-BR');
-                    return `
-                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 hover:shadow-sm transition">
-                            <div>
-                                <p class="font-medium text-slate-800">${a.name || 'Sem nome'}</p>
-                                <p class="text-xs text-slate-400">${a.itemCount} itens | ${date}</p>
+                let html = '';
+                analyses.slice(0, 5).forEach(a => {
+                    const date = new Date(a.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                    html += `
+                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border hover:shadow-md transition">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-slate-800 truncate">${a.name || 'Sem nome'}</p>
+                                <p class="text-xs text-slate-400">${a.itemCount || 0} itens | ${date}</p>
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="loadFromCloud('${a.id}', '${mode}')" class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg">Carregar</button>
-                                <button onclick="deleteFromCloud('${a.id}', '${mode}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1.5 rounded-lg">🗑️</button>
+                            <div class="flex gap-2 ml-2">
+                                <button onclick="loadFromCloud('${a.id}', '${mode}')" class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200">Carregar</button>
+                                <button onclick="deleteFromCloud('${a.id}', '${mode}')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
                             </div>
                         </div>
                     `;
-                }).join('');
-            } catch (e) {
-                container.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Erro ao carregar</p>';
+                });
+                
+                document.getElementById(listId).innerHTML = html;
+            } catch (error) {
+                document.getElementById(listId).innerHTML = '<p class="text-sm text-red-400 text-center">Erro ao carregar</p>';
             }
         }
-        
+
         async function loadFromCloud(id, mode) {
             const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
             
@@ -1566,338 +1656,243 @@ CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
                 const result = await response.json();
                 
                 if (result.error) {
-                    showNotification('❌ ' + result.error, 'error');
+                    showNotification(result.error, 'error');
                     return;
                 }
                 
-                operationMode = mode;
                 data = result.data || [];
                 currentData = result.currentData || [];
                 newData = result.newData || [];
+                operationMode = mode;
+                currentFileNames = result.fileNames || result.name || '';
                 
                 document.getElementById('modeSelection').classList.add('hidden');
                 document.getElementById('cloudAnalyses').classList.add('hidden');
+                document.getElementById('localCacheSection').classList.add('hidden');
                 document.getElementById('analysisSection').classList.remove('hidden');
                 
                 if (mode === 'compare') {
-                    document.getElementById('compareStats').classList.remove('hidden');
+                    document.getElementById('compareSummary').classList.remove('hidden');
+                    updateCompareSummary();
                 }
                 
-                renderAnalysis();
-                showNotification('✅ Análise carregada!', 'success');
-            } catch (e) {
-                showNotification('❌ Erro de conexão', 'error');
+                renderAnalysisTable();
+                populateFilters();
+                showNotification('Carregado da nuvem!', 'success');
+            } catch (error) {
+                showNotification('Erro ao carregar: ' + error.message, 'error');
             }
         }
-        
+
         async function deleteFromCloud(id, mode) {
-            if (!confirm('Excluir esta análise?')) return;
+            if (!confirm('Excluir esta análise da nuvem?')) return;
             
             const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
             
             try {
                 await fetch(url + '?action=delete&id=' + id);
                 loadCloudAnalyses(mode);
-                showNotification('🗑️ Análise excluída', 'info');
-            } catch (e) {
-                showNotification('❌ Erro ao excluir', 'error');
+                showNotification('Excluído da nuvem!', 'success');
+            } catch (error) {
+                showNotification('Erro ao excluir', 'error');
             }
         }
-        
-        // ========== RELATÓRIO ==========
-        function generateReport() {
-            // Filtrar itens removidos confirmados
-            const finalData = data.filter(x => x.changeType !== 'removed_confirmed' && !x.pendingRemoval);
-            
-            document.getElementById('analysisSection').classList.add('hidden');
-            document.getElementById('reportSection').classList.remove('hidden');
-            
-            const now = new Date();
-            document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-            document.getElementById('footerDate').textContent = now.toLocaleString('pt-BR');
-            
-            const tbody = document.getElementById('reportTableBody');
-            tbody.innerHTML = '';
-            
-            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
-            
-            finalData.forEach(item => {
-                const p = item.price;
-                const nCorte = base * calcParams.markupCorte * p;
-                const nRolo = base * calcParams.markupRolo * p;
-                
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-indigo-50 transition-colors';
-                tr.innerHTML = `
-                    <td class="p-2 border border-slate-200 font-mono text-xs">${item.code}</td>
-                    <td class="p-2 border border-slate-200 font-medium">${item.material}</td>
-                    <td class="p-2 border border-slate-200 text-center">${item.mesh}</td>
-                    <td class="p-2 border border-slate-200 text-center">${item.wire}</td>
-                    <td class="p-2 border border-slate-200 text-center">${item.width}</td>
-                    <td class="p-2 border border-slate-200 text-right bg-slate-50 hide-for-vendors">${fmt(p)}</td>
-                    <td class="p-2 border border-slate-200 text-right">${fmt(nCorte / calcParams.div18)}</td>
-                    <td class="p-2 border border-slate-200 text-right">${fmt(nRolo / calcParams.div18)}</td>
-                    <td class="p-2 border border-slate-200 text-right">${fmt(nCorte / calcParams.div12)}</td>
-                    <td class="p-2 border border-slate-200 text-right">${fmt(nRolo / calcParams.div12)}</td>
-                    <td class="p-2 border border-slate-200 text-right">${fmt(nCorte / calcParams.div07)}</td>
-                    <td class="p-2 border border-slate-200 text-right">${fmt(nRolo / calcParams.div07)}</td>
-                    <td class="p-2 border border-slate-200 text-right hide-for-vendors">${fmt(nCorte / calcParams.divCT)}</td>
-                    <td class="p-2 border border-slate-200 text-right hide-for-vendors">${fmt(nRolo / calcParams.divCT)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            // Popular filtros do relatório
-            const materials = [...new Set(finalData.map(x => x.material))].sort();
-            const meshes = [...new Set(finalData.map(x => x.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
-            const wires = [...new Set(finalData.map(x => x.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
-            
-            document.getElementById('reportFilterMaterial').innerHTML = '<option value="">Material</option>' + materials.map(m => `<option value="${m}">${m}</option>`).join('');
-            document.getElementById('reportFilterMesh').innerHTML = '<option value="">Malha</option>' + meshes.map(m => `<option value="${m}">${m}</option>`).join('');
-            document.getElementById('reportFilterWire').innerHTML = '<option value="">Fio</option>' + wires.map(w => `<option value="${w}">${w}</option>`).join('');
-        }
-        
-        function applyReportFilters() {
-            const code = document.getElementById('reportFilterCode').value.toUpperCase();
-            const mat = document.getElementById('reportFilterMaterial').value;
-            const mesh = document.getElementById('reportFilterMesh').value;
-            const wire = document.getElementById('reportFilterWire').value;
-            
-            document.querySelectorAll('#reportTableBody tr').forEach(row => {
-                const cells = row.cells;
-                let show = true;
-                
-                if (code && !cells[0].textContent.toUpperCase().includes(code)) show = false;
-                if (mat && cells[1].textContent !== mat) show = false;
-                if (mesh && cells[2].textContent !== mesh) show = false;
-                if (wire && cells[3].textContent !== wire) show = false;
-                
-                row.style.display = show ? '' : 'none';
-            });
-        }
-        
-        function clearReportFilters() {
-            document.getElementById('reportFilterCode').value = '';
-            document.getElementById('reportFilterMaterial').value = '';
-            document.getElementById('reportFilterMesh').value = '';
-            document.getElementById('reportFilterWire').value = '';
-            applyReportFilters();
-        }
-        
-        function exportExcel() {
-            const finalData = data.filter(x => x.changeType !== 'removed_confirmed' && !x.pendingRemoval);
-            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
-            
-            const rows = [['CÓDIGO', 'MATERIAL', 'MALHA', 'FIO', 'LARGURA', '$/m²', '18% CRT', '18% ROL', '12% CRT', '12% ROL', '7% CRT', '7% ROL', 'CT CRT', 'CT ROL']];
-            
-            finalData.forEach(item => {
-                const p = item.price;
-                const nCorte = base * calcParams.markupCorte * p;
-                const nRolo = base * calcParams.markupRolo * p;
-                
-                rows.push([
-                    item.code, item.material, item.mesh, item.wire, item.width, p,
-                    nCorte / calcParams.div18, nRolo / calcParams.div18,
-                    nCorte / calcParams.div12, nRolo / calcParams.div12,
-                    nCorte / calcParams.div07, nRolo / calcParams.div07,
-                    nCorte / calcParams.divCT, nRolo / calcParams.divCT
-                ]);
-            });
-            
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-            XLSX.utils.book_append_sheet(wb, ws, 'Tabela');
-            XLSX.writeFile(wb, 'tabela_central_mesh.xlsx');
-        }
-        
-        function publishComplete() {
-            document.querySelector('nav').classList.add('hidden');
-            document.getElementById('reportActions').classList.add('hidden');
-            document.getElementById('publicFooter').classList.remove('hidden');
-            document.getElementById('reportSection').classList.remove('vendors-mode');
-        }
-        
-        function publishVendors() {
-            document.querySelector('nav').classList.add('hidden');
-            document.getElementById('reportActions').classList.add('hidden');
-            document.getElementById('publicFooter').classList.remove('hidden');
-            document.getElementById('reportSection').classList.add('vendors-mode');
-        }
-        
-        function copyEmbedCode(type) {
-            const table = document.getElementById('reportTable').outerHTML;
-            const isVendors = type === 'vendors';
-            
-            const code = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central Mesh - Tabela de Preços</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
-    <style>${isVendors ? '.hide-for-vendors { display: none !important; }' : ''}</style>
-</head>
-<body class="bg-white p-8">
-    <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-indigo-600">TABELA OFICIAL DE PREÇOS</h1>
-        <h2 class="text-xl text-slate-600">Central Mesh</h2>
-    </div>
-    ${table}
-    <div class="mt-8 text-center text-slate-400 text-xs">Central Mesh - v4.00</div>
-</body>
-</html>`;
-            
-            navigator.clipboard.writeText(code).then(() => {
-                showNotification('📋 Código copiado!', 'success');
-            });
-        }
-        
-        // ========== APPS SCRIPT ==========
-        function showAppsScriptCode() {
-            const code = `// ============================================
-// CENTRAL MESH - API v4.00
-// Cole este código em AMBAS as planilhas
-// ============================================
 
-const SHEET_DATA = 'Dados';
-const SHEET_CONFIG = 'Config';
+        // ========== PARÂMETROS DE CÁLCULO ==========
+        function loadCalcParams() {
+            const saved = localStorage.getItem('centralMesh_calcParams');
+            if (saved) {
+                calcParams = { ...calcParams, ...JSON.parse(saved) };
+            }
+        }
+
+        function openCalcConfig() {
+            document.getElementById('paramF1').value = calcParams.f1;
+            document.getElementById('paramF2').value = calcParams.f2;
+            document.getElementById('paramF3').value = calcParams.f3;
+            document.getElementById('paramMarkupCorte').value = calcParams.markupCorte;
+            document.getElementById('paramMarkupRolo').value = calcParams.markupRolo;
+            document.getElementById('paramDiv18').value = calcParams.div18;
+            document.getElementById('paramDiv12').value = calcParams.div12;
+            document.getElementById('paramDiv07').value = calcParams.div07;
+            document.getElementById('paramDivCT').value = calcParams.divCT;
+            document.getElementById('calcConfigModal').classList.remove('hidden');
+        }
+
+        function closeCalcConfig() {
+            document.getElementById('calcConfigModal').classList.add('hidden');
+        }
+
+        function saveParams() {
+            calcParams = {
+                f1: parseFloat(document.getElementById('paramF1').value) || 2,
+                f2: parseFloat(document.getElementById('paramF2').value) || 5.60,
+                f3: parseFloat(document.getElementById('paramF3').value) || 0.82,
+                markupCorte: parseFloat(document.getElementById('paramMarkupCorte').value) || 1.35,
+                markupRolo: parseFloat(document.getElementById('paramMarkupRolo').value) || 1.30,
+                div18: parseFloat(document.getElementById('paramDiv18').value) || 0.7235,
+                div12: parseFloat(document.getElementById('paramDiv12').value) || 0.7835,
+                div07: parseFloat(document.getElementById('paramDiv07').value) || 0.8335,
+                divCT: parseFloat(document.getElementById('paramDivCT').value) || 0.9
+            };
+            
+            localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
+            closeCalcConfig();
+            showNotification('Parâmetros salvos!', 'success');
+        }
+
+        function resetParams() {
+            document.getElementById('paramF1').value = 2;
+            document.getElementById('paramF2').value = 5.60;
+            document.getElementById('paramF3').value = 0.82;
+            document.getElementById('paramMarkupCorte').value = 1.35;
+            document.getElementById('paramMarkupRolo').value = 1.30;
+            document.getElementById('paramDiv18').value = 0.7235;
+            document.getElementById('paramDiv12').value = 0.7835;
+            document.getElementById('paramDiv07').value = 0.8335;
+            document.getElementById('paramDivCT').value = 0.9;
+        }
+
+        // ========== SIMULADOR ==========
+        function openSimulator() {
+            document.getElementById('simulatorModal').classList.remove('hidden');
+            calculateSimulation();
+        }
+
+        function closeSimulator() {
+            document.getElementById('simulatorModal').classList.add('hidden');
+        }
+
+        function calculateSimulation() {
+            const price = parseFloat(document.getElementById('simPrice').value) || 0;
+            const { f1, f2, f3, markupCorte, markupRolo, div18, div12, div07, divCT } = calcParams;
+            
+            const base = f1 * f2 * f3;
+            const numCorte = base * markupCorte * price;
+            const numRolo = base * markupRolo * price;
+            
+            const results = [
+                { label: '18% CRT', value: numCorte / div18, color: 'from-red-500 to-red-600' },
+                { label: '18% ROL', value: numRolo / div18, color: 'from-red-400 to-red-500' },
+                { label: '12% CRT', value: numCorte / div12, color: 'from-amber-500 to-amber-600' },
+                { label: '12% ROL', value: numRolo / div12, color: 'from-amber-400 to-amber-500' },
+                { label: '7% CRT', value: numCorte / div07, color: 'from-emerald-500 to-emerald-600' },
+                { label: '7% ROL', value: numRolo / div07, color: 'from-emerald-400 to-emerald-500' },
+                { label: 'CT CRT', value: numCorte / divCT, color: 'from-slate-500 to-slate-600' },
+                { label: 'CT ROL', value: numRolo / divCT, color: 'from-slate-400 to-slate-500' }
+            ];
+            
+            document.getElementById('simResults').innerHTML = results.map(r => `
+                <div class="bg-gradient-to-br ${r.color} rounded-xl p-4 text-center text-white shadow-lg">
+                    <p class="text-xs font-medium opacity-80">${r.label}</p>
+                    <p class="text-xl font-bold mt-1">${formatNumber(r.value)}</p>
+                </div>
+            `).join('');
+        }
+
+        // ========== UTILITÁRIOS ==========
+        function formatNumber(value) {
+            if (value === null || value === undefined || isNaN(value)) return '-';
+            return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function downloadTemplate() {
+            const wb = XLSX.utils.book_new();
+            const data = [
+                ['CÓDIGO SILÓGICA', 'MATERIAL', 'MALHA', 'FIO/mm', 'LARGURA', '$/m2']
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
+            XLSX.writeFile(wb, 'modelo_tabela_precos.xlsx');
+        }
+
+        function showAppsScriptCode() {
+            const code = `// Cole este código no Google Apps Script
+// Extensões > Apps Script
+
+const SHEET_NAME = 'Dados';
 
 function doGet(e) {
   const action = e.parameter.action || 'list';
   
   try {
     let result;
-    
     switch(action) {
-      case 'list':
-        result = listAnalyses();
-        break;
-      case 'load':
-        result = loadAnalysis(e.parameter.id);
-        break;
-      case 'delete':
-        result = deleteAnalysis(e.parameter.id);
-        break;
-      case 'loadConfig':
-        result = loadConfig(e.parameter.key);
-        break;
-      default:
-        result = { error: 'Ação inválida' };
+      case 'list': result = listAnalyses(); break;
+      case 'load': result = loadAnalysis(e.parameter.id); break;
+      case 'delete': result = deleteAnalysis(e.parameter.id); break;
+      default: result = { error: 'Ação inválida' };
     }
-    
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-      
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
-    const action = payload.action || 'save';
-    
-    let result;
-    
-    if (action === 'saveConfig') {
-      result = saveConfig(payload.key, payload.data);
-    } else {
-      result = saveAnalysis(payload);
-    }
-    
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-      
+    const result = saveAnalysis(payload);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function ensureSheet(name, headers) {
+function ensureSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(name);
-  
+  let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
-    sheet = ss.insertSheet(name);
-    if (headers) {
-      sheet.appendRow(headers);
-      sheet.getRange(1, 1, 1, headers.length).setBackground('#4285f4').setFontColor('#fff').setFontWeight('bold');
-      sheet.setFrozenRows(1);
-    }
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow(['ID', 'Nome', 'Arquivos', 'Qtd', 'Data', 'Usuario', 'DataJSON', 'CurrentJSON', 'NewJSON']);
   }
   return sheet;
 }
 
-function loadConfig(key) {
-  const sheet = ensureSheet(SHEET_CONFIG, ['KEY', 'DATA', 'UPDATED']);
-  const data = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === key) {
-      return { key: data[i][0], data: data[i][1], updated: data[i][2] };
-    }
-  }
-  return { key: key, data: null };
-}
-
-function saveConfig(key, value) {
-  const sheet = ensureSheet(SHEET_CONFIG, ['KEY', 'DATA', 'UPDATED']);
-  const data = sheet.getDataRange().getValues();
-  const row = [key, value, new Date().toISOString()];
-  
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === key) {
-      sheet.getRange(i + 1, 1, 1, 3).setValues([row]);
-      return { success: true };
-    }
-  }
-  sheet.appendRow(row);
-  return { success: true };
-}
-
 function listAnalyses() {
-  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
+  const sheet = ensureSheet();
   const data = sheet.getDataRange().getValues();
-  
-  if (data.length <= 1) return [];
-  
-  return data.slice(1).filter(r => r[0]).map(r => ({
-    id: r[0], name: r[1], mode: r[2], itemCount: r[3], timestamp: r[4], userName: r[5]
-  })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const analyses = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0]) {
+      analyses.push({
+        id: data[i][0],
+        name: data[i][1],
+        fileNames: data[i][2],
+        itemCount: data[i][3],
+        timestamp: data[i][4],
+        userName: data[i][5]
+      });
+    }
+  }
+  return analyses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 function loadAnalysis(id) {
-  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
+  const sheet = ensureSheet();
   const data = sheet.getDataRange().getValues();
-  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       return {
-        id: data[i][0], name: data[i][1], mode: data[i][2], itemCount: data[i][3],
-        timestamp: data[i][4], userName: data[i][5],
-        data: data[i][6] ? JSON.parse(data[i][6]) : [],
-        currentData: data[i][7] ? JSON.parse(data[i][7]) : [],
-        newData: data[i][8] ? JSON.parse(data[i][8]) : []
+        id: data[i][0],
+        name: data[i][1],
+        fileNames: data[i][2],
+        itemCount: data[i][3],
+        timestamp: data[i][4],
+        userName: data[i][5],
+        data: JSON.parse(data[i][6] || '[]'),
+        currentData: JSON.parse(data[i][7] || '[]'),
+        newData: JSON.parse(data[i][8] || '[]')
       };
     }
   }
-  return { error: 'Não encontrado' };
+  return { error: 'Não encontrada' };
 }
 
-function saveAnalysis(payload) {
-  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
-  
-  const id = payload.id || Utilities.getUuid();
-  const row = [
-    id, payload.name || 'Sem nome', payload.mode || 'simple', payload.itemCount || 0,
-    new Date().toISOString(), payload.userName || 'Anônimo',
-    JSON.stringify(payload.data || []),
-    JSON.stringify(payload.currentData || []),
-    JSON.stringify(payload.newData || [])
-  ];
+function saveAnalysis(p) {
+  const sheet = ensureSheet();
+  const id = p.id || Utilities.getUuid();
+  const row = [id, p.name || '', p.fileNames || '', p.itemCount || 0, new Date().toISOString(), p.userName || '', JSON.stringify(p.data || []), JSON.stringify(p.currentData || []), JSON.stringify(p.newData || [])];
   
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
@@ -1911,31 +1906,35 @@ function saveAnalysis(payload) {
 }
 
 function deleteAnalysis(id) {
-  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
+  const sheet = ensureSheet();
   const data = sheet.getDataRange().getValues();
-  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       sheet.deleteRow(i + 1);
       return { success: true };
     }
   }
-  return { error: 'Não encontrado' };
+  return { error: 'Não encontrada' };
 }`;
             
-            document.getElementById('appsScriptCode').textContent = code;
-            document.getElementById('appsScriptModal').classList.remove('hidden');
-        }
-        
-        function closeAppsScriptModal() {
-            document.getElementById('appsScriptModal').classList.add('hidden');
-        }
-        
-        function copyAppsScriptCode() {
-            const code = document.getElementById('appsScriptCode').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                showNotification('📋 Código copiado!', 'success');
-            });
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="p-6 border-b flex justify-between items-center">
+                        <h3 class="text-xl font-bold">📜 Código do Google Apps Script</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-2xl text-slate-400 hover:text-slate-600">&times;</button>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-sm text-slate-600 mb-4">Cole este código em <strong>Extensões → Apps Script</strong> da sua planilha Google Sheets. Depois implante como Web App.</p>
+                        <div class="relative">
+                            <button onclick="navigator.clipboard.writeText(this.nextElementSibling.textContent); this.textContent='✓ Copiado!'; setTimeout(() => this.textContent='📋 Copiar', 2000)" class="absolute top-2 right-2 px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">📋 Copiar</button>
+                            <pre class="bg-slate-900 text-green-400 p-4 rounded-xl overflow-x-auto text-xs">${code}</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
     </script>
 </body>
