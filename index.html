@@ -3,357 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central Mesh - Gestor de Preços v3.31</title>
+    <title>Central Mesh - Gestor de Preços v4.00</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
         @media print {
             .no-print { display: none !important; }
             body { background: white; }
         }
+        
         .hide-for-vendors { }
         .vendors-mode .hide-for-vendors { display: none !important; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-orange {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .gradient-green {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
         .price-input {
             transition: all 0.2s;
         }
+        
         .price-input:focus {
-            transform: scale(1.05);
-            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
+            transform: scale(1.02);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
         }
+        
         .price-input.changed {
             background-color: #fef3c7 !important;
             border-color: #f59e0b !important;
         }
+        
         .price-input.empty {
             background-color: #fee2e2 !important;
             border-color: #ef4444 !important;
         }
-        .row-empty {
-            background-color: #fef2f2 !important;
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s;
         }
-        .row-changed {
-            background-color: #fffbeb !important;
-        }
-        .cloud-btn {
-            transition: all 0.2s;
-        }
-        .cloud-btn:hover {
+        
+        .btn-primary:hover {
             transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            transition: all 0.3s;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(17, 153, 142, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transition: all 0.3s;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3);
+        }
+        
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .table-modern th {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+        }
+        
+        .table-modern tbody tr:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+        
+        .cloud-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .cloud-status.connected {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+        
+        .cloud-status.disconnected {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+        
         .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
         }
+        
         @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        .notification {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="bg-orange-600 text-white p-4 no-print">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">Central Mesh | Gestor de Preços</h1>
-            <div class="flex items-center gap-4">
-                <button onclick="openCalcConfig()" class="bg-orange-700 hover:bg-orange-800 px-3 py-1 rounded text-sm flex items-center gap-1">
-                    ⚙️ Parâmetros de Cálculo
-                </button>
-                <button onclick="openSimulator()" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm flex items-center gap-1">
-                    🧮 Simulador de Preços
-                </button>
-                <span class="bg-orange-800 px-3 py-1 rounded text-sm font-bold animate-pulse">✓ v3.31</span>
-                <button onclick="showAppsScriptCode()" class="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm">📜 Ver Código Apps Script</button>
+    <!-- Navbar Moderna -->
+    <nav class="gradient-bg text-white shadow-xl no-print sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">Central Mesh</h1>
+                        <p class="text-xs text-white/70">Gestor de Preços</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Status da Nuvem -->
+                    <div id="cloudStatusBadge" class="cloud-status disconnected">
+                        <span id="cloudStatusIcon">○</span>
+                        <span id="cloudStatusText">Offline</span>
+                    </div>
+                    
+                    <!-- Botões do Menu -->
+                    <button onclick="openCalcConfig()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Parâmetros
+                    </button>
+                    
+                    <button onclick="openSimulator()" class="btn-success px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Simulador
+                    </button>
+                    
+                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">
+                        v4.00
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Modal do Simulador de Preços -->
-    <div id="simulatorModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h3 class="text-lg font-bold text-gray-800">🧮 Simulador de Preços</h3>
-                <button onclick="closeSimulator()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+    <!-- Notificações -->
+    <div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
+
+    <!-- Modal Simulador -->
+    <div id="simulatorModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4 no-print">
+        <div class="glass-card rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">🧮 Simulador de Preços</h3>
+                    <button onclick="closeSimulator()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition">✕</button>
+                </div>
             </div>
             
-            <div class="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-                <p class="text-sm text-green-800 mb-3"><strong>💵 Digite o valor em $/m² para calcular todos os preços:</strong></p>
-                <div class="flex items-center gap-4">
-                    <div class="flex-1 max-w-xs">
-                        <label class="block text-xs font-bold text-green-700 mb-1">Valor $/m²</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 font-bold">$</span>
-                            <input type="number" step="0.01" id="simInputPrice" value="100" 
-                                oninput="calculateSimulation()"
-                                class="w-full p-3 pl-8 border-2 border-green-400 rounded-lg text-center font-bold text-2xl text-green-700 focus:ring-4 focus:ring-green-200 focus:border-green-500">
+            <div class="p-6">
+                <div class="mb-6 p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200">
+                    <p class="text-sm text-emerald-800 mb-3 font-medium">💵 Digite o valor em $/m² para calcular todos os preços:</p>
+                    <div class="flex items-center gap-6">
+                        <div class="flex-1 max-w-xs">
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-emerald-600 font-bold text-xl">$</span>
+                                <input type="number" step="0.01" id="simInputPrice" value="100" oninput="calculateSimulation()"
+                                    class="w-full p-4 pl-10 border-2 border-emerald-400 rounded-xl text-center font-bold text-3xl text-emerald-700 focus:ring-4 focus:ring-emerald-200 focus:border-emerald-500 transition">
+                            </div>
+                        </div>
+                        <div class="text-center bg-white rounded-xl p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 mb-1">Fator Base</p>
+                            <p id="simFactorBase" class="text-2xl font-bold text-indigo-600">9.184</p>
                         </div>
                     </div>
-                    <div class="text-center">
-                        <p class="text-xs text-gray-500 mb-1">Fator Base</p>
-                        <p id="simFactorBase" class="text-lg font-bold text-orange-600">9.184</p>
-                    </div>
                 </div>
-            </div>
-            
-            <!-- Tabela de Resultados -->
-            <div class="mb-6">
-                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">📊</span>
-                    Preços Calculados
-                </h4>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border-collapse">
-                        <thead>
-                            <tr class="bg-orange-600 text-white">
-                                <th class="p-2 border border-orange-700 text-center">Faixa</th>
-                                <th class="p-2 border border-orange-700 text-center">Tipo</th>
-                                <th class="p-2 border border-orange-700 text-center">Markup</th>
-                                <th class="p-2 border border-orange-700 text-center">Divisor</th>
-                                <th class="p-2 border border-orange-700 text-center">Fórmula</th>
-                                <th class="p-2 border border-orange-700 text-center bg-orange-700 font-bold">PREÇO FINAL</th>
-                            </tr>
-                        </thead>
-                        <tbody id="simResultsBody" class="text-center">
-                            <!-- Preenchido via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Resumo Visual -->
-            <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                    <p class="text-xs text-red-600 font-bold mb-1">18% CORTE</p>
-                    <p id="simCard18CRT" class="text-xl font-bold text-red-700">-</p>
-                </div>
-                <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                    <p class="text-xs text-red-600 font-bold mb-1">18% ROLO</p>
-                    <p id="simCard18ROL" class="text-xl font-bold text-red-700">-</p>
-                </div>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                    <p class="text-xs text-yellow-600 font-bold mb-1">12% CORTE</p>
-                    <p id="simCard12CRT" class="text-xl font-bold text-yellow-700">-</p>
-                </div>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                    <p class="text-xs text-yellow-600 font-bold mb-1">12% ROLO</p>
-                    <p id="simCard12ROL" class="text-xl font-bold text-yellow-700">-</p>
-                </div>
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                    <p class="text-xs text-green-600 font-bold mb-1">7% CORTE</p>
-                    <p id="simCard7CRT" class="text-xl font-bold text-green-700">-</p>
-                </div>
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                    <p class="text-xs text-green-600 font-bold mb-1">7% ROLO</p>
-                    <p id="simCard7ROL" class="text-xl font-bold text-green-700">-</p>
-                </div>
-                <div class="bg-gray-100 border border-gray-300 rounded-lg p-3 text-center">
-                    <p class="text-xs text-gray-600 font-bold mb-1">CT CORTE</p>
-                    <p id="simCardCTCRT" class="text-xl font-bold text-gray-700">-</p>
-                </div>
-                <div class="bg-gray-100 border border-gray-300 rounded-lg p-3 text-center">
-                    <p class="text-xs text-gray-600 font-bold mb-1">CT ROLO</p>
-                    <p id="simCardCTROL" class="text-xl font-bold text-gray-700">-</p>
-                </div>
-            </div>
-            
-            <!-- Fórmula Detalhada -->
-            <div class="mb-4 p-3 bg-gray-800 rounded-lg text-white">
-                <h4 class="font-bold mb-2 text-orange-400">📐 Fórmula Utilizada:</h4>
-                <p class="text-xs font-mono text-green-400 mb-2">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                    <div>
-                        <span class="text-gray-400">Fator1:</span>
-                        <span id="simShowF1" class="text-white font-bold ml-1">2</span>
+                <!-- Cards de Resultados -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">18% CORTE</p>
+                        <p id="simCard18CRT" class="text-2xl font-bold">-</p>
                     </div>
-                    <div>
-                        <span class="text-gray-400">Fator2:</span>
-                        <span id="simShowF2" class="text-white font-bold ml-1">5.60</span>
+                    <div class="bg-gradient-to-br from-red-400 to-rose-500 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">18% ROLO</p>
+                        <p id="simCard18ROL" class="text-2xl font-bold">-</p>
                     </div>
-                    <div>
-                        <span class="text-gray-400">Fator3:</span>
-                        <span id="simShowF3" class="text-white font-bold ml-1">0.82</span>
+                    <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">12% CORTE</p>
+                        <p id="simCard12CRT" class="text-2xl font-bold">-</p>
                     </div>
-                    <div>
-                        <span class="text-gray-400">Base:</span>
-                        <span id="simShowBase" class="text-green-400 font-bold ml-1">9.184</span>
+                    <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">12% ROLO</p>
+                        <p id="simCard12ROL" class="text-2xl font-bold">-</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">7% CORTE</p>
+                        <p id="simCard7CRT" class="text-2xl font-bold">-</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">7% ROLO</p>
+                        <p id="simCard7ROL" class="text-2xl font-bold">-</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">CT CORTE</p>
+                        <p id="simCardCTCRT" class="text-2xl font-bold">-</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl p-4 text-white">
+                        <p class="text-xs opacity-80 font-medium">CT ROLO</p>
+                        <p id="simCardCTROL" class="text-2xl font-bold">-</p>
                     </div>
                 </div>
-            </div>
-            
-            <div class="flex justify-between">
-                <button onclick="openCalcConfig(); closeSimulator();" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">
-                    ⚙️ Alterar Parâmetros
-                </button>
-                <div class="flex gap-2">
-                    <button onclick="copySimulationResult()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold">
+                
+                <!-- Fórmula -->
+                <div class="bg-slate-800 rounded-xl p-4 text-white mb-6">
+                    <h4 class="font-bold mb-2 text-indigo-400">📐 Fórmula:</h4>
+                    <p class="text-sm font-mono text-emerald-400">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
+                    <div class="grid grid-cols-4 gap-4 mt-3 text-xs">
+                        <div><span class="text-slate-400">Fator1:</span> <span id="simShowF1" class="text-white font-bold">2</span></div>
+                        <div><span class="text-slate-400">Fator2:</span> <span id="simShowF2" class="text-white font-bold">5.60</span></div>
+                        <div><span class="text-slate-400">Fator3:</span> <span id="simShowF3" class="text-white font-bold">0.82</span></div>
+                        <div><span class="text-slate-400">Base:</span> <span id="simShowBase" class="text-emerald-400 font-bold">9.184</span></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3">
+                    <button onclick="copySimulationResult()" class="btn-success text-white px-6 py-2.5 rounded-xl font-medium">
                         📋 Copiar Resultados
                     </button>
-                    <button onclick="closeSimulator()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm font-bold">Fechar</button>
+                    <button onclick="closeSimulator()" class="bg-slate-200 hover:bg-slate-300 px-6 py-2.5 rounded-xl font-medium transition">
+                        Fechar
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal do Código Apps Script -->
-    <div id="appsScriptModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h3 class="text-lg font-bold text-gray-800">📜 Código do Google Apps Script</h3>
-                <button onclick="closeAppsScriptModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-            </div>
-            
-            <div class="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded">
-                <p class="text-sm text-yellow-800"><strong>⚠️ IMPORTANTE:</strong> Cole este código em AMBAS as planilhas (Análises Simples e Comparativos)</p>
-            </div>
-            
-            <div class="mb-4">
-                <button onclick="copyAppsScriptCode()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold">📋 Copiar Código</button>
-            </div>
-            
-            <pre id="appsScriptCode" class="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-x-auto max-h-[60vh]" style="white-space: pre-wrap; word-wrap: break-word;"></pre>
-            
-            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                <h4 class="font-bold text-blue-800 mb-2">📝 Instruções:</h4>
-                <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
-                    <li>Crie uma planilha no Google Sheets</li>
-                    <li>Vá em Extensões → Apps Script</li>
-                    <li>Apague o código padrão e cole o código acima</li>
-                    <li>Salve (Ctrl+S)</li>
-                    <li>Clique em Implantar → Nova implantação</li>
-                    <li>Selecione "App da Web"</li>
-                    <li>Configure: Executar como "Eu" e Acesso "Qualquer pessoa"</li>
-                    <li>Clique em Implantar e copie a URL</li>
-                    <li>Cole a URL no campo CLOUD_CONFIG no início do index.html</li>
-                </ol>
-            </div>
-            
-            <div class="mt-4 text-right">
-                <button onclick="closeAppsScriptModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Parâmetros de Cálculo -->
-    <div id="calcConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h3 class="text-lg font-bold text-gray-800">⚙️ Parâmetros de Cálculo</h3>
-                <button onclick="closeCalcConfig()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-            </div>
-            
-            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                <p class="text-sm text-blue-800"><strong>📐 Fórmula Base:</strong></p>
-                <p class="text-xs text-blue-700 mt-1 font-mono">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
-            </div>
-            
-            <!-- Fatores Multiplicadores -->
-            <div class="mb-6">
-                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">1</span>
-                    Fatores Multiplicadores Base
-                </h4>
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Fator 1</label>
-                        <input type="number" step="0.01" id="calcFactor1" value="2" class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg">
-                        <p class="text-xs text-gray-400 mt-1">Padrão: 2</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Fator 2</label>
-                        <input type="number" step="0.01" id="calcFactor2" value="5.60" class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg">
-                        <p class="text-xs text-gray-400 mt-1">Padrão: 5.60</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Fator 3</label>
-                        <input type="number" step="0.01" id="calcFactor3" value="0.82" class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg">
-                        <p class="text-xs text-gray-400 mt-1">Padrão: 0.82</p>
-                    </div>
-                </div>
-                <div class="mt-2 p-2 bg-gray-100 rounded text-center">
-                    <span class="text-sm text-gray-600">Fator Base Comum = </span>
-                    <span id="commonFactorPreview" class="font-bold text-orange-600">9.184</span>
+    <!-- Modal Parâmetros -->
+    <div id="calcConfigModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4 no-print">
+        <div class="glass-card rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">⚙️ Parâmetros de Cálculo</h3>
+                    <button onclick="closeCalcConfig()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition">✕</button>
                 </div>
             </div>
             
-            <!-- Markups Corte/Rolo -->
-            <div class="mb-6">
-                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">2</span>
-                    Markups (Corte vs Rolo)
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-3 bg-orange-50 border border-orange-200 rounded">
-                        <label class="block text-xs font-bold text-orange-700 mb-1">Markup CORTE (CRT)</label>
-                        <input type="number" step="0.01" id="calcMarkupCorte" value="1.35" class="w-full p-2 border border-orange-300 rounded text-center font-bold text-lg">
-                        <p class="text-xs text-gray-400 mt-1">Padrão: 1.35</p>
+            <div class="p-6">
+                <!-- Status de sincronização -->
+                <div id="paramSyncStatus" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+                    <span class="font-medium">ℹ️ Os parâmetros são salvos na nuvem e compartilhados com todos os usuários.</span>
+                </div>
+                
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-6">
+                    <p class="text-sm text-indigo-800"><strong>📐 Fórmula Base:</strong></p>
+                    <p class="text-xs text-indigo-600 mt-1 font-mono">Preço = (Fator1 × Fator2 × Fator3 × Markup × $/m²) ÷ Divisor</p>
+                </div>
+                
+                <!-- Fatores -->
+                <div class="mb-6">
+                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <span class="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                        Fatores Multiplicadores
+                    </h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                            <label class="block text-xs font-bold text-slate-500 mb-2">Fator 1</label>
+                            <input type="number" step="0.01" id="calcFactor1" value="2" class="w-full p-3 border border-slate-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
+                        </div>
+                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                            <label class="block text-xs font-bold text-slate-500 mb-2">Fator 2</label>
+                            <input type="number" step="0.01" id="calcFactor2" value="5.60" class="w-full p-3 border border-slate-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
+                        </div>
+                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                            <label class="block text-xs font-bold text-slate-500 mb-2">Fator 3</label>
+                            <input type="number" step="0.01" id="calcFactor3" value="0.82" class="w-full p-3 border border-slate-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
+                        </div>
                     </div>
-                    <div class="p-3 bg-blue-50 border border-blue-200 rounded">
-                        <label class="block text-xs font-bold text-blue-700 mb-1">Markup ROLO (ROL)</label>
-                        <input type="number" step="0.01" id="calcMarkupRolo" value="1.30" class="w-full p-2 border border-blue-300 rounded text-center font-bold text-lg">
-                        <p class="text-xs text-gray-400 mt-1">Padrão: 1.30</p>
+                    <div class="mt-3 p-3 bg-slate-100 rounded-xl text-center">
+                        <span class="text-sm text-slate-600">Fator Base Comum = </span>
+                        <span id="commonFactorPreview" class="font-bold text-indigo-600 text-lg">9.184</span>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Divisores por Faixa de Imposto -->
-            <div class="mb-6">
-                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">3</span>
-                    Divisores por Faixa de Imposto
-                </h4>
-                <div class="grid grid-cols-4 gap-3">
-                    <div class="p-3 bg-red-50 border border-red-200 rounded">
-                        <label class="block text-xs font-bold text-red-700 mb-1 text-center">18%</label>
-                        <input type="number" step="0.0001" id="calcDiv18" value="0.7235" class="w-full p-2 border border-red-300 rounded text-center font-bold">
-                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.7235</p>
-                    </div>
-                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                        <label class="block text-xs font-bold text-yellow-700 mb-1 text-center">12%</label>
-                        <input type="number" step="0.0001" id="calcDiv12" value="0.7835" class="w-full p-2 border border-yellow-300 rounded text-center font-bold">
-                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.7835</p>
-                    </div>
-                    <div class="p-3 bg-green-50 border border-green-200 rounded">
-                        <label class="block text-xs font-bold text-green-700 mb-1 text-center">7%</label>
-                        <input type="number" step="0.0001" id="calcDiv07" value="0.8335" class="w-full p-2 border border-green-300 rounded text-center font-bold">
-                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.8335</p>
-                    </div>
-                    <div class="p-3 bg-gray-100 border border-gray-300 rounded">
-                        <label class="block text-xs font-bold text-gray-700 mb-1 text-center">CT</label>
-                        <input type="number" step="0.0001" id="calcDivCT" value="0.9" class="w-full p-2 border border-gray-400 rounded text-center font-bold">
-                        <p class="text-xs text-gray-400 mt-1 text-center">Padrão: 0.9</p>
+                
+                <!-- Markups -->
+                <div class="mb-6">
+                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <span class="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                        Markups
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-200">
+                            <label class="block text-xs font-bold text-orange-700 mb-2">Markup CORTE</label>
+                            <input type="number" step="0.01" id="calcMarkupCorte" value="1.35" class="w-full p-3 border border-orange-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-orange-200 focus:border-orange-500 transition">
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                            <label class="block text-xs font-bold text-blue-700 mb-2">Markup ROLO</label>
+                            <input type="number" step="0.01" id="calcMarkupRolo" value="1.30" class="w-full p-3 border border-blue-300 rounded-xl text-center font-bold text-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition">
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Preview da Fórmula -->
-            <div class="mb-6 p-4 bg-gray-800 rounded-lg text-white">
-                <h4 class="font-bold mb-2 text-orange-400">📊 Exemplo de Cálculo ($/m² = 100):</h4>
-                <div class="grid grid-cols-2 gap-2 text-xs font-mono" id="calcPreview">
-                    <div>18% CRT: <span class="text-green-400" id="preview18CRT">-</span></div>
-                    <div>18% ROL: <span class="text-green-400" id="preview18ROL">-</span></div>
-                    <div>12% CRT: <span class="text-yellow-400" id="preview12CRT">-</span></div>
-                    <div>12% ROL: <span class="text-yellow-400" id="preview12ROL">-</span></div>
-                    <div>7% CRT: <span class="text-blue-400" id="preview7CRT">-</span></div>
-                    <div>7% ROL: <span class="text-blue-400" id="preview7ROL">-</span></div>
-                    <div>CT CRT: <span class="text-gray-400" id="previewCTCRT">-</span></div>
-                    <div>CT ROL: <span class="text-gray-400" id="previewCTROL">-</span></div>
+                
+                <!-- Divisores -->
+                <div class="mb-6">
+                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <span class="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                        Divisores por Faixa
+                    </h4>
+                    <div class="grid grid-cols-4 gap-3">
+                        <div class="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-3 border border-red-200">
+                            <label class="block text-xs font-bold text-red-700 mb-2 text-center">18%</label>
+                            <input type="number" step="0.0001" id="calcDiv18" value="0.7235" class="w-full p-2 border border-red-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-red-200 transition">
+                        </div>
+                        <div class="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-3 border border-amber-200">
+                            <label class="block text-xs font-bold text-amber-700 mb-2 text-center">12%</label>
+                            <input type="number" step="0.0001" id="calcDiv12" value="0.7835" class="w-full p-2 border border-amber-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-amber-200 transition">
+                        </div>
+                        <div class="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-3 border border-emerald-200">
+                            <label class="block text-xs font-bold text-emerald-700 mb-2 text-center">7%</label>
+                            <input type="number" step="0.0001" id="calcDiv07" value="0.8335" class="w-full p-2 border border-emerald-300 rounded-lg text-center font-bold focus:ring-2 focus:ring-emerald-200 transition">
+                        </div>
+                        <div class="bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-3 border border-slate-300">
+                            <label class="block text-xs font-bold text-slate-700 mb-2 text-center">CT</label>
+                            <input type="number" step="0.0001" id="calcDivCT" value="0.9" class="w-full p-2 border border-slate-400 rounded-lg text-center font-bold focus:ring-2 focus:ring-slate-200 transition">
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="flex justify-between">
-                <button onclick="resetCalcConfig()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">
-                    ↩️ Restaurar Padrões
-                </button>
-                <div class="flex gap-2">
-                    <button onclick="closeCalcConfig()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm">Cancelar</button>
-                    <button onclick="saveCalcConfig()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded text-sm font-bold">💾 Salvar Parâmetros</button>
+                
+                <!-- Preview -->
+                <div class="mb-6 p-4 bg-slate-800 rounded-xl text-white">
+                    <h4 class="font-bold mb-3 text-indigo-400">📊 Preview ($/m² = 100):</h4>
+                    <div class="grid grid-cols-4 gap-2 text-xs font-mono">
+                        <div>18% CRT: <span class="text-emerald-400" id="preview18CRT">-</span></div>
+                        <div>18% ROL: <span class="text-emerald-400" id="preview18ROL">-</span></div>
+                        <div>12% CRT: <span class="text-amber-400" id="preview12CRT">-</span></div>
+                        <div>12% ROL: <span class="text-amber-400" id="preview12ROL">-</span></div>
+                        <div>7% CRT: <span class="text-blue-400" id="preview7CRT">-</span></div>
+                        <div>7% ROL: <span class="text-blue-400" id="preview7ROL">-</span></div>
+                        <div>CT CRT: <span class="text-slate-400" id="previewCTCRT">-</span></div>
+                        <div>CT ROL: <span class="text-slate-400" id="previewCTROL">-</span></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between">
+                    <button onclick="resetCalcConfig()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                        ↩️ Restaurar Padrões
+                    </button>
+                    <div class="flex gap-3">
+                        <button onclick="closeCalcConfig()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                            Cancelar
+                        </button>
+                        <button onclick="saveCalcConfig()" class="btn-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold">
+                            💾 Salvar Parâmetros
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="container mx-auto p-4">
+    <!-- Container Principal -->
+    <div class="container mx-auto px-6 py-8 max-w-7xl">
 
         <!-- ========================================== -->
         <!-- CONFIGURAÇÃO: COLE SUAS URLs AQUI ABAIXO  -->
@@ -379,269 +448,315 @@
         </script>
         <!-- ========================================== -->
 
-        <!-- AVISO SE URLs NÃO CONFIGURADAS -->
-        <section id="step-config-warning" class="hidden bg-red-100 border-2 border-red-400 rounded-lg shadow p-4 mb-6 no-print">
-            <div class="flex items-center gap-3">
-                <div class="text-3xl">⚠️</div>
-                <div>
-                    <h3 class="font-bold text-red-800">URLs das Planilhas Não Configuradas</h3>
-                    <p class="text-sm text-red-600">Para usar a sincronização com a nuvem, edite o arquivo index.html e cole as URLs das suas planilhas Google Sheets na seção CLOUD_CONFIG.</p>
+        <!-- Aviso se URLs não configuradas -->
+        <div id="configWarning" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-6 mb-6 no-print">
+            <div class="flex items-start gap-4">
+                <div class="text-4xl">⚙️</div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-amber-800 text-lg mb-2">Configure as URLs das Planilhas</h3>
+                    <p class="text-sm text-amber-700 mb-3">Para usar a sincronização com a nuvem, edite o arquivo <code class="bg-amber-200 px-2 py-0.5 rounded">index.html</code> e cole as URLs das suas planilhas Google Sheets na seção <code class="bg-amber-200 px-2 py-0.5 rounded">CLOUD_CONFIG</code>.</p>
+                    <button onclick="showAppsScriptCode()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                        📜 Ver Código do Apps Script
+                    </button>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- ANÁLISES NA NUVEM -->
-        <section id="step-cloud-simple" class="hidden no-print">
-            <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-400 rounded-lg shadow p-4 mb-4">
-                <div class="flex items-center gap-3 mb-3 border-b border-blue-200 pb-2">
-                    <div class="text-2xl">📊</div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-blue-800">Análises Simples na Nuvem</h3>
-                        <p class="text-xs text-blue-600">Tabelas únicas analisadas</p>
+        <!-- Análises na Nuvem -->
+        <section id="cloudAnalyses" class="hidden mb-8 no-print">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Análises Simples -->
+                <div class="glass-card rounded-2xl p-6 border border-indigo-100 shadow-lg">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl">📊</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800">Análises Simples</h3>
+                            <p class="text-xs text-slate-500">Tabelas salvas na nuvem</p>
+                        </div>
+                        <button onclick="loadCloudAnalyses('simple')" class="ml-auto text-indigo-600 hover:text-indigo-800 text-sm font-medium">🔄 Atualizar</button>
                     </div>
-                    <button onclick="refreshCloudAnalyses('simple')" class="text-blue-600 hover:text-blue-800 text-sm">🔄 Atualizar</button>
-                </div>
-                <div id="cloudSimpleList" class="space-y-2">Carregando...</div>
-            </div>
-        </section>
-
-        <section id="step-cloud-compare" class="hidden no-print">
-            <div class="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow p-4 mb-6">
-                <div class="flex items-center gap-3 mb-3 border-b border-green-200 pb-2">
-                    <div class="text-2xl">🔄</div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-green-800">Comparativos na Nuvem</h3>
-                        <p class="text-xs text-green-600">Comparações entre tabelas</p>
-                    </div>
-                    <button onclick="refreshCloudAnalyses('compare')" class="text-green-600 hover:text-green-800 text-sm">🔄 Atualizar</button>
-                </div>
-                <div id="cloudCompareList" class="space-y-2">Carregando...</div>
-            </div>
-        </section>
-
-        <!-- CACHE LOCAL -->
-        <section id="step-cached" class="hidden bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-400 rounded-lg shadow p-4 mb-6 no-print">
-            <div class="flex items-center gap-3 mb-3 border-b border-orange-200 pb-2">
-                <div class="text-2xl">💾</div>
-                <div>
-                    <h3 class="font-bold text-orange-800">Análises Salvas Localmente</h3>
-                    <p class="text-xs text-orange-600">Selecione qual análise continuar:</p>
-                </div>
-            </div>
-            <div id="cacheInfo"></div>
-        </section>
-
-        <!-- STEP 1: MODO -->
-        <section id="step-mode" class="bg-white rounded-lg shadow p-6 mb-6 no-print">
-            <h2 class="text-lg font-bold mb-4 text-gray-700">1. Selecione o Modo de Operação</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div onclick="selectMode('simple')" id="modeSimple" class="border-2 border-gray-300 rounded-lg p-6 cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition">
-                    <div class="text-center">
-                        <div class="text-4xl mb-2">📊</div>
-                        <h3 class="text-lg font-bold text-gray-800">Análise Simples</h3>
-                        <p class="text-sm text-gray-500 mt-2">Carregar UMA tabela e analisar inconsistências de preços</p>
+                    <div id="simpleAnalysesList" class="space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-sm text-slate-400 text-center py-4">Carregando...</p>
                     </div>
                 </div>
                 
-                <div onclick="selectMode('compare')" id="modeCompare" class="border-2 border-gray-300 rounded-lg p-6 cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition">
-                    <div class="text-center">
-                        <div class="text-4xl mb-2">🔄</div>
-                        <h3 class="text-lg font-bold text-gray-800">Comparativo de Tabelas</h3>
-                        <p class="text-sm text-gray-500 mt-2">Comparar tabela ATUAL com tabela NOVA</p>
+                <!-- Comparativos -->
+                <div class="glass-card rounded-2xl p-6 border border-emerald-100 shadow-lg">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white text-xl">🔄</div>
+                        <div>
+                            <h3 class="font-bold text-slate-800">Comparativos</h3>
+                            <p class="text-xs text-slate-500">Comparações salvas na nuvem</p>
+                        </div>
+                        <button onclick="loadCloudAnalyses('compare')" class="ml-auto text-emerald-600 hover:text-emerald-800 text-sm font-medium">🔄 Atualizar</button>
+                    </div>
+                    <div id="compareAnalysesList" class="space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-sm text-slate-400 text-center py-4">Carregando...</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- STEP 2: IMPORTAR -->
-        <section id="step-input" class="hidden bg-white rounded-lg shadow p-6 mb-6 no-print">
-            <h2 class="text-lg font-bold mb-4 text-gray-700">2. Importar Arquivo(s) Excel</h2>
-            
-            <div id="inputSimple" class="hidden">
-                <div class="border-2 border-dashed border-orange-300 rounded-lg p-8 text-center bg-orange-50 mb-4">
-                    <div class="text-3xl mb-2">📁</div>
-                    <p class="font-bold text-gray-700 mb-2">Tabela de Preços</p>
-                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="mb-2">
+        <!-- Seleção de Modo -->
+        <section id="modeSelection" class="mb-8 no-print">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Selecione o Modo de Análise</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                <button onclick="selectMode('simple')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-indigo-400 transition-all group hover:shadow-xl">
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
+                            📊
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Análise Simples</h3>
+                        <p class="text-sm text-slate-500">Carregue UMA tabela e analise inconsistências de preços</p>
+                    </div>
+                </button>
+                
+                <button onclick="selectMode('compare')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-emerald-400 transition-all group hover:shadow-xl">
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
+                            🔄
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Comparativo de Tabelas</h3>
+                        <p class="text-sm text-slate-500">Compare tabela ATUAL com tabela NOVA</p>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Upload de Arquivos -->
+        <section id="uploadSection" class="hidden mb-8 no-print">
+            <div class="glass-card rounded-2xl p-8 shadow-lg">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-slate-800">📁 Importar Arquivos</h2>
+                    <button onclick="backToMode()" class="text-slate-500 hover:text-slate-700 text-sm font-medium">← Voltar</button>
+                </div>
+                
+                <div id="simpleUpload" class="hidden">
+                    <div class="border-2 border-dashed border-indigo-300 rounded-2xl p-12 text-center bg-indigo-50/50 hover:bg-indigo-100/50 transition cursor-pointer" onclick="document.getElementById('fileSimple').click()">
+                        <input type="file" id="fileSimple" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'simple')">
+                        <div class="text-5xl mb-4">📄</div>
+                        <p id="fileSimpleName" class="text-lg font-medium text-slate-700">Clique para selecionar arquivo Excel</p>
+                        <p class="text-sm text-slate-400 mt-2">.xlsx ou .xls</p>
+                    </div>
+                </div>
+                
+                <div id="compareUpload" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="border-2 border-dashed border-blue-300 rounded-2xl p-8 text-center bg-blue-50/50 hover:bg-blue-100/50 transition cursor-pointer" onclick="document.getElementById('fileCurrent').click()">
+                            <input type="file" id="fileCurrent" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'current')">
+                            <div class="text-4xl mb-3">📋</div>
+                            <p id="fileCurrentName" class="font-medium text-slate-700">Tabela ATUAL</p>
+                            <p class="text-xs text-slate-400 mt-1">Base de preços atual</p>
+                        </div>
+                        <div class="border-2 border-dashed border-emerald-300 rounded-2xl p-8 text-center bg-emerald-50/50 hover:bg-emerald-100/50 transition cursor-pointer" onclick="document.getElementById('fileNew').click()">
+                            <input type="file" id="fileNew" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'new')">
+                            <div class="text-4xl mb-3">📄</div>
+                            <p id="fileNewName" class="font-medium text-slate-700">Tabela NOVA</p>
+                            <p class="text-xs text-slate-400 mt-1">Com alterações</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 mt-6">
+                    <button onclick="processFiles()" class="btn-primary text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        Analisar
+                    </button>
+                    <button onclick="downloadTemplate()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium transition">
+                        📥 Baixar Modelo
+                    </button>
                 </div>
             </div>
-            
-            <div id="inputCompare" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div class="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50">
-                        <div class="text-3xl mb-2">📋</div>
-                        <p class="font-bold text-blue-700 mb-2">Tabela ATUAL</p>
-                        <input type="file" id="fileCurrentInput" accept=".xlsx,.xls">
+        </section>
+
+        <!-- Tela de Análise -->
+        <section id="analysisSection" class="hidden mb-8 no-print">
+            <div class="glass-card rounded-2xl shadow-lg overflow-hidden">
+                <div class="p-6 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">📊 Análise de Preços</h2>
+                            <p class="text-sm text-slate-500 mt-1">
+                                Total: <span id="totalCount" class="font-bold">0</span> |
+                                Revisar: <span id="reviewCount" class="font-bold text-red-600">0</span> |
+                                Vazios: <span id="emptyCount" class="font-bold text-amber-600">0</span>
+                                <span id="compareStats" class="hidden">
+                                    | Alterados: <span id="changedCount" class="font-bold text-blue-600">0</span>
+                                    | Novos: <span id="newCount" class="font-bold text-emerald-600">0</span>
+                                </span>
+                            </p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="saveToCloud()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                                ☁️ Salvar na Nuvem
+                            </button>
+                            <button onclick="approveAllVisible()" class="btn-success text-white px-4 py-2 rounded-xl text-sm font-medium">
+                                ✓ Aprovar Filtrados
+                            </button>
+                            <button onclick="generateReport()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-medium">
+                                📄 Gerar Relatório
+                            </button>
+                        </div>
                     </div>
                     
-                    <div class="border-2 border-dashed border-green-300 rounded-lg p-6 text-center bg-green-50">
-                        <div class="text-3xl mb-2">📄</div>
-                        <p class="font-bold text-green-700 mb-2">Tabela NOVA</p>
-                        <input type="file" id="fileNewInput" accept=".xlsx,.xls">
+                    <!-- Filtros -->
+                    <div class="mt-4 flex flex-wrap gap-3 items-center">
+                        <span class="text-xs font-bold text-slate-500">FILTROS:</span>
+                        <select id="filterMaterial" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                            <option value="">Todos Materiais</option>
+                        </select>
+                        <select id="filterMesh" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                            <option value="">Todas Malhas</option>
+                        </select>
+                        <select id="filterWire" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                            <option value="">Todos Fios</option>
+                        </select>
+                        <select id="filterStatus" onchange="applyFilters()" class="text-xs p-2 border border-slate-300 rounded-lg bg-white">
+                            <option value="">Todos Status</option>
+                            <option value="review">🔴 Revisar</option>
+                            <option value="empty">🟠 Vazios</option>
+                            <option value="changed">🔵 Alterados</option>
+                            <option value="new">🟢 Novos</option>
+                            <option value="ok">✅ OK</option>
+                        </select>
+                        <button onclick="clearFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Limpar</button>
+                        <span id="filteredInfo" class="text-xs text-slate-400 ml-auto"></span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="flex gap-4 flex-wrap">
-                <button onclick="goBackToMode()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">← Voltar</button>
-                <button onclick="processFiles()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded font-bold">Analisar Tabela(s)</button>
-                <button onclick="downloadTemplate()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Baixar Modelo Excel</button>
+                
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+                    <table class="w-full text-sm table-modern">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="text-white text-xs">
+                                <th class="p-3 text-left font-medium">Status</th>
+                                <th class="p-3 text-left font-medium">Código</th>
+                                <th class="p-3 text-left font-medium">Material</th>
+                                <th class="p-3 text-center font-medium">Malha</th>
+                                <th class="p-3 text-center font-medium">Fio</th>
+                                <th class="p-3 text-center font-medium">Largura</th>
+                                <th class="p-3 text-center font-medium">$/m² Anterior</th>
+                                <th class="p-3 text-center font-medium">$/m² Atual</th>
+                                <th class="p-3 text-center font-medium">Variação</th>
+                                <th class="p-3 text-center font-medium bg-amber-600">$/m² Editar</th>
+                                <th class="p-3 text-left font-medium">Motivo</th>
+                                <th class="p-3 text-center font-medium">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analysisTableBody" class="divide-y divide-slate-200">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
-        <!-- STEP 3: ANÁLISE -->
-        <section id="step-review" class="hidden bg-white rounded-lg shadow p-6 mb-6 no-print">
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h2 class="text-lg font-bold text-gray-700">3. Análise e Correção</h2>
-                    <p class="text-sm text-gray-500">
-                        Problemas: <span id="anomalyCount" class="font-bold text-red-600">0</span> | 
-                        Vazios: <span id="emptyCount" class="font-bold text-orange-600">0</span> |
-                        Total: <span id="totalCount" class="font-bold text-gray-600">0</span>
-                        <span id="compareStats" class="hidden">
-                            | Alterados: <span id="changedCount" class="font-bold text-blue-600">0</span>
-                            | Novos: <span id="newCount" class="font-bold text-green-600">0</span>
-                            | Remover: <span id="removedCount" class="font-bold text-red-600">0</span>
-                        </span>
-                    </p>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <button onclick="saveToCloud()" id="btnSaveCloud" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm cloud-btn">☁️ Salvar na Nuvem</button>
-                    <button onclick="exportComparative()" id="btnExportComparative" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">📊 Exportar Comparativo</button>
-                    <button onclick="generateReport()" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded text-sm">Gerar Relatório Final</button>
-                </div>
-            </div>
-
-            <!-- FILTROS -->
-            <div class="mb-4 p-3 bg-orange-50 rounded border border-orange-200 flex flex-wrap gap-3 items-center">
-                <span class="text-xs font-bold text-orange-700">🔍 FILTROS:</span>
-                <select id="aFilterMaterial" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
-                    <option value="">Todos Materiais</option>
-                </select>
-                <select id="aFilterMesh" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
-                    <option value="">Todas Malhas</option>
-                </select>
-                <select id="aFilterWire" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
-                    <option value="">Todos Fios</option>
-                </select>
-                <select id="aFilterWidth" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
-                    <option value="">Todas Larguras</option>
-                </select>
-                <select id="aFilterStatus" onchange="applyAnalysisFilters()" class="text-xs p-1 border rounded">
-                    <option value="">Todos Status</option>
-                    <option value="revisar">🔴 Apenas p/ Revisar</option>
-                    <option value="vazio">🟠 Apenas Vazios</option>
-                    <option value="alterado">🔵 Apenas Alterados</option>
-                    <option value="novo">🟢 Apenas Novos</option>
-                    <option value="removido">⚫ Apenas p/ Remover</option>
-                    <option value="editado">✏️ Apenas Editados</option>
-                    <option value="ok">✅ Apenas OK</option>
-                </select>
-                <button onclick="clearAnalysisFilters()" class="text-xs text-orange-600 underline font-bold">Limpar</button>
-                <span id="filteredCount" class="text-xs text-gray-500 ml-auto"></span>
-            </div>
-
-            <div class="overflow-x-auto border rounded max-h-[500px]">
-                <table class="w-full text-xs">
-                    <thead class="bg-gray-100 sticky top-0">
-                        <tr>
-                            <th class="p-2 text-left">Status</th>
-                            <th class="p-2 text-left">Tipo</th>
-                            <th class="p-2 text-left">Código</th>
-                            <th class="p-2 text-left">Material</th>
-                            <th class="p-2">Malha</th>
-                            <th class="p-2">Fio</th>
-                            <th class="p-2">Largura</th>
-                            <th class="p-2">$/m² Anterior</th>
-                            <th class="p-2">$/m² Atual</th>
-                            <th class="p-2">Variação</th>
-                            <th class="p-2 bg-yellow-50">$/m² EDITAR</th>
-                            <th class="p-2 text-left">Motivo</th>
-                            <th class="p-2">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analysisBody"></tbody>
-                </table>
+        <!-- Relatório Final -->
+        <section id="reportSection" class="hidden">
+            <div class="text-center mb-8 pb-6 border-b-4 border-indigo-600">
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">TABELA OFICIAL DE PREÇOS</h1>
+                <h2 class="text-xl text-slate-600 mt-2">Central Mesh</h2>
+                <p id="reportDate" class="text-sm text-slate-400 mt-2"></p>
             </div>
             
-            <div class="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
-                <strong>Legenda:</strong> 
-                <span class="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded mx-1">Revisar</span>
-                <span class="inline-block bg-orange-100 text-orange-700 px-2 py-0.5 rounded mx-1">Vazio</span>
-                <span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded mx-1">Alterado</span>
-                <span class="inline-block bg-green-100 text-green-700 px-2 py-0.5 rounded mx-1">Novo</span>
-                <span class="inline-block bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded mx-1">P/ Remover</span>
-                <span class="inline-block bg-amber-100 text-amber-700 px-2 py-0.5 rounded mx-1">Editado</span>
-            </div>
-        </section>
-
-        <!-- STEP 4: RELATÓRIO -->
-        <section id="step-report" class="hidden">
-            <div class="text-center mb-6 border-b-2 border-orange-500 pb-4">
-                <h1 class="text-2xl font-bold text-orange-600">TABELA OFICIAL DE PREÇOS</h1>
-                <h2 class="text-lg text-gray-600">Central Mesh</h2>
-                <p id="reportDate" class="text-sm text-gray-400"></p>
-            </div>
-
-            <div id="filterBar" class="mb-4 p-3 bg-orange-50 rounded border border-orange-200 flex flex-wrap gap-3 items-center no-print">
-                <span class="text-xs font-bold text-orange-700">FILTROS:</span>
-                <input type="text" id="fCode" onkeyup="applyFilters()" placeholder="Código..." class="text-xs p-1 border rounded w-24">
-                <select id="fMaterial" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Material</option></select>
-                <select id="fMesh" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Malha</option></select>
-                <select id="fWire" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Fio</option></select>
-                <select id="fWidth" onchange="applyFilters()" class="text-xs p-1 border rounded"><option value="">Largura</option></select>
-                <button onclick="clearFilters()" class="text-xs text-orange-600 underline">Limpar</button>
+            <!-- Filtros do Relatório -->
+            <div class="mb-6 p-4 bg-white rounded-xl border border-slate-200 flex flex-wrap gap-4 items-center no-print shadow-sm">
+                <span class="text-xs font-bold text-slate-500">FILTROS:</span>
+                <input type="text" id="reportFilterCode" onkeyup="applyReportFilters()" placeholder="Código..." class="text-xs p-2 border border-slate-300 rounded-lg w-24">
+                <select id="reportFilterMaterial" onchange="applyReportFilters()" class="text-xs p-2 border border-slate-300 rounded-lg"><option value="">Material</option></select>
+                <select id="reportFilterMesh" onchange="applyReportFilters()" class="text-xs p-2 border border-slate-300 rounded-lg"><option value="">Malha</option></select>
+                <select id="reportFilterWire" onchange="applyReportFilters()" class="text-xs p-2 border border-slate-300 rounded-lg"><option value="">Fio</option></select>
+                <button onclick="clearReportFilters()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Limpar</button>
                 <div class="flex-grow"></div>
-                <button onclick="exportExcel()" class="bg-green-600 text-white text-xs px-3 py-1 rounded">Exportar Excel</button>
+                <button onclick="exportExcel()" class="btn-success text-white px-4 py-2 rounded-lg text-xs font-medium">📥 Exportar Excel</button>
             </div>
-
-            <div class="overflow-x-auto border rounded">
+            
+            <div class="overflow-x-auto bg-white rounded-xl shadow-lg border border-slate-200">
                 <table class="w-full text-xs" id="reportTable">
-                    <thead class="bg-orange-600 text-white">
+                    <thead class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
                         <tr>
-                            <th class="p-1 border">CÓDIGO</th>
-                            <th class="p-1 border">MATERIAL</th>
-                            <th class="p-1 border">MALHA</th>
-                            <th class="p-1 border">FIO</th>
-                            <th class="p-1 border">LARG.</th>
-                            <th class="p-1 border hide-for-vendors">$/m²</th>
-                            <th class="p-1 border">18% CRT</th>
-                            <th class="p-1 border">18% ROL</th>
-                            <th class="p-1 border">12% CRT</th>
-                            <th class="p-1 border">12% ROL</th>
-                            <th class="p-1 border">7% CRT</th>
-                            <th class="p-1 border">7% ROL</th>
-                            <th class="p-1 border hide-for-vendors">CT CRT</th>
-                            <th class="p-1 border hide-for-vendors">CT ROL</th>
+                            <th class="p-2 border border-indigo-500 text-left">CÓDIGO</th>
+                            <th class="p-2 border border-indigo-500 text-left">MATERIAL</th>
+                            <th class="p-2 border border-indigo-500 text-center">MALHA</th>
+                            <th class="p-2 border border-indigo-500 text-center">FIO</th>
+                            <th class="p-2 border border-indigo-500 text-center">LARG.</th>
+                            <th class="p-2 border border-indigo-500 text-right hide-for-vendors">$/m²</th>
+                            <th class="p-2 border border-indigo-500 text-right">18% CRT</th>
+                            <th class="p-2 border border-indigo-500 text-right">18% ROL</th>
+                            <th class="p-2 border border-indigo-500 text-right">12% CRT</th>
+                            <th class="p-2 border border-indigo-500 text-right">12% ROL</th>
+                            <th class="p-2 border border-indigo-500 text-right">7% CRT</th>
+                            <th class="p-2 border border-indigo-500 text-right">7% ROL</th>
+                            <th class="p-2 border border-indigo-500 text-right hide-for-vendors">CT CRT</th>
+                            <th class="p-2 border border-indigo-500 text-right hide-for-vendors">CT ROL</th>
                         </tr>
                     </thead>
-                    <tbody id="reportBody"></tbody>
+                    <tbody id="reportTableBody" class="divide-y divide-slate-200">
+                    </tbody>
                 </table>
             </div>
-
-            <div id="adminButtons" class="mt-6 text-center no-print flex flex-wrap justify-center gap-3">
-                <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded">🖨️ Imprimir PDF</button>
-                <button onclick="pubComplete()" class="bg-orange-600 text-white px-4 py-2 rounded font-bold">🌐 Publicação Completa</button>
-                <button onclick="pubVendors()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">👔 Publicação Vendedores</button>
-                <button onclick="copyCodeComplete()" class="bg-purple-600 text-white px-4 py-2 rounded">Copiar Código (Completo)</button>
-                <button onclick="copyCodeVendors()" class="bg-pink-600 text-white px-4 py-2 rounded">Copiar Código (Vendedores)</button>
-                <button onclick="location.reload()" class="text-orange-600 underline px-4 py-2">🔄 Reiniciar</button>
+            
+            <!-- Botões de Publicação -->
+            <div class="mt-8 flex flex-wrap justify-center gap-4 no-print" id="reportActions">
+                <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-medium transition">
+                    🖨️ Imprimir PDF
+                </button>
+                <button onclick="publishComplete()" class="btn-primary text-white px-6 py-3 rounded-xl font-bold">
+                    🌐 Publicação Completa
+                </button>
+                <button onclick="publishVendors()" class="btn-success text-white px-6 py-3 rounded-xl font-bold">
+                    👔 Publicação Vendedores
+                </button>
+                <button onclick="copyEmbedCode('complete')" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition">
+                    📋 Copiar Código Completo
+                </button>
+                <button onclick="copyEmbedCode('vendors')" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl font-medium transition">
+                    📋 Copiar Código Vendedores
+                </button>
+                <button onclick="location.reload()" class="text-indigo-600 hover:text-indigo-800 px-6 py-3 font-medium">
+                    🔄 Nova Análise
+                </button>
             </div>
-
-            <div id="publicFooter" class="hidden mt-6 text-center text-gray-400 text-xs border-t pt-4">
-                Central Mesh - Tabela Oficial de Preços v3.31
+            
+            <div id="publicFooter" class="hidden mt-8 pt-6 border-t border-slate-200 text-center text-slate-400 text-xs">
+                Central Mesh - Tabela Oficial de Preços | Gerado em <span id="footerDate"></span>
             </div>
         </section>
+
+    </div>
+
+    <!-- Modal Apps Script -->
+    <div id="appsScriptModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4 no-print">
+        <div class="glass-card rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-slate-800">📜 Código do Google Apps Script</h3>
+                    <button onclick="closeAppsScriptModal()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition">✕</button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                    <p class="text-sm text-amber-800"><strong>⚠️ Cole este código em AMBAS as planilhas</strong> (Análises Simples e Comparativos)</p>
+                </div>
+                <div class="mb-4">
+                    <button onclick="copyAppsScriptCode()" class="btn-success text-white px-4 py-2 rounded-lg font-medium">📋 Copiar Código</button>
+                </div>
+                <pre id="appsScriptCode" class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-xs overflow-x-auto max-h-96 font-mono"></pre>
+            </div>
+        </div>
     </div>
 
     <script>
+        // ========== VARIÁVEIS GLOBAIS ==========
         let data = [];
         let currentData = [];
         let newData = [];
         let operationMode = 'simple';
-        let currentAnalysisId = null;
+        let fileSimple = null;
+        let fileCurrent = null;
+        let fileNew = null;
         
-        // Parâmetros de Cálculo (carregados da nuvem ou localStorage)
+        // Parâmetros de cálculo padrão
         let calcParams = {
             factor1: 2,
             factor2: 5.60,
@@ -654,85 +769,145 @@
             divCT: 0.9
         };
         
-        // Função para obter fator comum
-        function getCommonFactor() {
-            return calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
-        }
-
         // ========== INICIALIZAÇÃO ==========
         document.addEventListener('DOMContentLoaded', async function() {
-            // Verificar se as URLs estão configuradas
+            console.log('🚀 Central Mesh v4.00 - Iniciando...');
+            
+            // Verificar se URLs estão configuradas
             if (!CLOUD_CONFIG.URL_SIMPLE && !CLOUD_CONFIG.URL_COMPARE) {
-                document.getElementById('step-config-warning').classList.remove('hidden');
+                document.getElementById('configWarning').classList.remove('hidden');
+                updateCloudStatus(false);
+            } else {
+                document.getElementById('cloudAnalyses').classList.remove('hidden');
+                updateCloudStatus(true);
+                
+                // Carregar parâmetros da nuvem
+                await loadCalcParamsFromCloud();
+                
+                // Carregar análises
+                loadCloudAnalyses('simple');
+                loadCloudAnalyses('compare');
             }
             
-            // Carregar parâmetros (primeiro da nuvem, depois local)
-            await loadCalcParamsFromCloud();
-            
-            // Carregar análises da nuvem
-            loadCloudAnalyses();
-            
-            // Verificar cache local
-            checkCachedData();
+            // Carregar parâmetros locais como fallback
+            loadCalcParamsLocal();
         });
-
-        // ========== PARÂMETROS DE CÁLCULO ==========
-        async function loadCalcParamsFromCloud() {
-            console.log('🔄 Tentando carregar parâmetros da nuvem...');
+        
+        // ========== STATUS DA NUVEM ==========
+        function updateCloudStatus(connected) {
+            const badge = document.getElementById('cloudStatusBadge');
+            const icon = document.getElementById('cloudStatusIcon');
+            const text = document.getElementById('cloudStatusText');
             
-            if (!CLOUD_CONFIG.URL_SIMPLE) {
-                console.log('⚠️ URL_SIMPLE não configurada, usando local');
-                loadCalcParamsFromLocal();
-                return;
-            }
-            
-            try {
-                const url = CLOUD_CONFIG.URL_SIMPLE + '?action=loadConfig&key=calcParams';
-                console.log('📡 Buscando:', url);
-                
-                const response = await fetch(url);
-                const text = await response.text();
-                console.log('📥 Resposta bruta:', text);
-                
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch(e) {
-                    console.log('⚠️ Resposta não é JSON válido');
-                    loadCalcParamsFromLocal();
-                    return;
-                }
-                
-                if (result && result.data) {
-                    try {
-                        calcParams = JSON.parse(result.data);
-                        console.log('✅ Parâmetros carregados da nuvem:', calcParams);
-                        // Também salvar localmente como backup
-                        localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
-                    } catch(e) {
-                        console.log('⚠️ Erro ao parsear data:', e);
-                        loadCalcParamsFromLocal();
-                    }
-                } else {
-                    console.log('⚠️ Nenhum parâmetro na nuvem, usando local. Resultado:', result);
-                    loadCalcParamsFromLocal();
-                }
-            } catch(e) {
-                console.log('❌ Erro ao carregar da nuvem:', e);
-                loadCalcParamsFromLocal();
+            if (connected) {
+                badge.classList.remove('disconnected');
+                badge.classList.add('connected');
+                icon.textContent = '●';
+                text.textContent = 'Conectado';
+            } else {
+                badge.classList.remove('connected');
+                badge.classList.add('disconnected');
+                icon.textContent = '○';
+                text.textContent = 'Offline';
             }
         }
         
-        function loadCalcParamsFromLocal() {
+        // ========== NOTIFICAÇÕES ==========
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notifications');
+            const colors = {
+                success: 'bg-emerald-500',
+                error: 'bg-red-500',
+                warning: 'bg-amber-500',
+                info: 'bg-indigo-500'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg font-medium text-sm`;
+            notification.textContent = message;
+            container.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 5000);
+        }
+        
+        // ========== PARÂMETROS DE CÁLCULO ==========
+        async function loadCalcParamsFromCloud() {
+            if (!CLOUD_CONFIG.URL_SIMPLE) return;
+            
             try {
-                const saved = localStorage.getItem('centralMesh_calcParams');
+                console.log('☁️ Carregando parâmetros da nuvem...');
+                const response = await fetch(CLOUD_CONFIG.URL_SIMPLE + '?action=loadConfig&key=calcParams');
+                const result = await response.json();
+                
+                if (result && result.data) {
+                    calcParams = JSON.parse(result.data);
+                    localStorage.setItem('calcParams', JSON.stringify(calcParams));
+                    console.log('✅ Parâmetros carregados da nuvem:', calcParams);
+                    showNotification('Parâmetros carregados da nuvem', 'success');
+                }
+            } catch (e) {
+                console.log('⚠️ Erro ao carregar parâmetros da nuvem:', e);
+            }
+        }
+        
+        function loadCalcParamsLocal() {
+            try {
+                const saved = localStorage.getItem('calcParams');
                 if (saved) {
                     calcParams = JSON.parse(saved);
                     console.log('💾 Parâmetros carregados do local:', calcParams);
                 }
-            } catch(e) {
+            } catch (e) {
                 console.log('Usando parâmetros padrão');
             }
+        }
+        
+        async function saveCalcConfig() {
+            // Ler valores dos inputs
+            calcParams = {
+                factor1: parseFloat(document.getElementById('calcFactor1').value) || 2,
+                factor2: parseFloat(document.getElementById('calcFactor2').value) || 5.60,
+                factor3: parseFloat(document.getElementById('calcFactor3').value) || 0.82,
+                markupCorte: parseFloat(document.getElementById('calcMarkupCorte').value) || 1.35,
+                markupRolo: parseFloat(document.getElementById('calcMarkupRolo').value) || 1.30,
+                div18: parseFloat(document.getElementById('calcDiv18').value) || 0.7235,
+                div12: parseFloat(document.getElementById('calcDiv12').value) || 0.7835,
+                div07: parseFloat(document.getElementById('calcDiv07').value) || 0.8335,
+                divCT: parseFloat(document.getElementById('calcDivCT').value) || 0.9
+            };
+            
+            // Salvar local
+            localStorage.setItem('calcParams', JSON.stringify(calcParams));
+            
+            // Salvar na nuvem
+            if (CLOUD_CONFIG.URL_SIMPLE) {
+                try {
+                    const payload = {
+                        action: 'saveConfig',
+                        key: 'calcParams',
+                        data: JSON.stringify(calcParams)
+                    };
+                    
+                    const response = await fetch(CLOUD_CONFIG.URL_SIMPLE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        showNotification('✅ Parâmetros salvos na nuvem!', 'success');
+                    } else {
+                        showNotification('⚠️ Erro ao salvar na nuvem', 'warning');
+                    }
+                } catch (e) {
+                    showNotification('⚠️ Erro de conexão com a nuvem', 'warning');
+                }
+            } else {
+                showNotification('💾 Parâmetros salvos localmente', 'info');
+            }
+            
+            closeCalcConfig();
         }
         
         function openCalcConfig() {
@@ -748,7 +923,7 @@
             updateCalcPreview();
             document.getElementById('calcConfigModal').classList.remove('hidden');
             
-            // Listeners para preview em tempo real
+            // Listeners para preview
             document.querySelectorAll('#calcConfigModal input').forEach(input => {
                 input.addEventListener('input', updateCalcPreview);
             });
@@ -758,101 +933,7 @@
             document.getElementById('calcConfigModal').classList.add('hidden');
         }
         
-        function updateCalcPreview() {
-            const f1 = parseFloat(document.getElementById('calcFactor1').value) || 2;
-            const f2 = parseFloat(document.getElementById('calcFactor2').value) || 5.60;
-            const f3 = parseFloat(document.getElementById('calcFactor3').value) || 0.82;
-            const mCorte = parseFloat(document.getElementById('calcMarkupCorte').value) || 1.35;
-            const mRolo = parseFloat(document.getElementById('calcMarkupRolo').value) || 1.30;
-            const d18 = parseFloat(document.getElementById('calcDiv18').value) || 0.7235;
-            const d12 = parseFloat(document.getElementById('calcDiv12').value) || 0.7835;
-            const d07 = parseFloat(document.getElementById('calcDiv07').value) || 0.8335;
-            const dCT = parseFloat(document.getElementById('calcDivCT').value) || 0.9;
-            
-            const commonFactor = f1 * f2 * f3;
-            document.getElementById('commonFactorPreview').textContent = commonFactor.toFixed(4);
-            
-            // Exemplo com $/m² = 100
-            const base = 100;
-            const numCorte = commonFactor * mCorte * base;
-            const numRolo = commonFactor * mRolo * base;
-            
-            document.getElementById('preview18CRT').textContent = fmt(numCorte / d18);
-            document.getElementById('preview18ROL').textContent = fmt(numRolo / d18);
-            document.getElementById('preview12CRT').textContent = fmt(numCorte / d12);
-            document.getElementById('preview12ROL').textContent = fmt(numRolo / d12);
-            document.getElementById('preview7CRT').textContent = fmt(numCorte / d07);
-            document.getElementById('preview7ROL').textContent = fmt(numRolo / d07);
-            document.getElementById('previewCTCRT').textContent = fmt(numCorte / dCT);
-            document.getElementById('previewCTROL').textContent = fmt(numRolo / dCT);
-        }
-        
-        async function saveCalcConfig() {
-            calcParams = {
-                factor1: parseFloat(document.getElementById('calcFactor1').value) || 2,
-                factor2: parseFloat(document.getElementById('calcFactor2').value) || 5.60,
-                factor3: parseFloat(document.getElementById('calcFactor3').value) || 0.82,
-                markupCorte: parseFloat(document.getElementById('calcMarkupCorte').value) || 1.35,
-                markupRolo: parseFloat(document.getElementById('calcMarkupRolo').value) || 1.30,
-                div18: parseFloat(document.getElementById('calcDiv18').value) || 0.7235,
-                div12: parseFloat(document.getElementById('calcDiv12').value) || 0.7835,
-                div07: parseFloat(document.getElementById('calcDiv07').value) || 0.8335,
-                divCT: parseFloat(document.getElementById('calcDivCT').value) || 0.9
-            };
-            
-            // Salvar localmente
-            localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
-            console.log('💾 Parâmetros salvos localmente:', calcParams);
-            
-            // Salvar na nuvem se URL configurada
-            if (CLOUD_CONFIG.URL_SIMPLE) {
-                try {
-                    const payload = {
-                        action: 'saveConfig',
-                        key: 'calcParams',
-                        data: JSON.stringify(calcParams)
-                    };
-                    
-                    console.log('☁️ Salvando na nuvem:', payload);
-                    
-                    const response = await fetch(CLOUD_CONFIG.URL_SIMPLE, {
-                        method: 'POST',
-                        mode: 'cors',
-                        redirect: 'follow',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    const text = await response.text();
-                    console.log('📥 Resposta do servidor:', text);
-                    
-                    let result;
-                    try {
-                        result = JSON.parse(text);
-                    } catch(e) {
-                        throw new Error('Resposta inválida do servidor');
-                    }
-                    
-                    if (result.success) {
-                        alert('✅ Parâmetros salvos localmente e na nuvem!');
-                    } else if (result.error) {
-                        throw new Error(result.error);
-                    } else {
-                        alert('✅ Parâmetros salvos localmente!\n⚠️ Resposta inesperada da nuvem.');
-                    }
-                } catch(e) {
-                    console.log('❌ Erro ao salvar na nuvem:', e);
-                    alert('✅ Parâmetros salvos localmente.\n⚠️ Não foi possível salvar na nuvem: ' + e.message);
-                }
-            } else {
-                alert('✅ Parâmetros salvos localmente!');
-            }
-            
-            closeCalcConfig();
-        }
-        
         function resetCalcConfig() {
-            if (!confirm('Restaurar todos os parâmetros para os valores padrão?')) return;
             document.getElementById('calcFactor1').value = 2;
             document.getElementById('calcFactor2').value = 5.60;
             document.getElementById('calcFactor3').value = 0.82;
@@ -864,10 +945,817 @@
             document.getElementById('calcDivCT').value = 0.9;
             updateCalcPreview();
         }
-
-        // ========== CÓDIGO APPS SCRIPT ==========
-        const APPS_SCRIPT_CODE = `// ============================================
-// CENTRAL MESH - API v3.31
+        
+        function updateCalcPreview() {
+            const f1 = parseFloat(document.getElementById('calcFactor1').value) || 0;
+            const f2 = parseFloat(document.getElementById('calcFactor2').value) || 0;
+            const f3 = parseFloat(document.getElementById('calcFactor3').value) || 0;
+            const mCorte = parseFloat(document.getElementById('calcMarkupCorte').value) || 0;
+            const mRolo = parseFloat(document.getElementById('calcMarkupRolo').value) || 0;
+            const d18 = parseFloat(document.getElementById('calcDiv18').value) || 1;
+            const d12 = parseFloat(document.getElementById('calcDiv12').value) || 1;
+            const d07 = parseFloat(document.getElementById('calcDiv07').value) || 1;
+            const dCT = parseFloat(document.getElementById('calcDivCT').value) || 1;
+            
+            const base = f1 * f2 * f3;
+            document.getElementById('commonFactorPreview').textContent = base.toFixed(4);
+            
+            const price = 100;
+            const nCorte = base * mCorte * price;
+            const nRolo = base * mRolo * price;
+            
+            document.getElementById('preview18CRT').textContent = fmt(nCorte / d18);
+            document.getElementById('preview18ROL').textContent = fmt(nRolo / d18);
+            document.getElementById('preview12CRT').textContent = fmt(nCorte / d12);
+            document.getElementById('preview12ROL').textContent = fmt(nRolo / d12);
+            document.getElementById('preview7CRT').textContent = fmt(nCorte / d07);
+            document.getElementById('preview7ROL').textContent = fmt(nRolo / d07);
+            document.getElementById('previewCTCRT').textContent = fmt(nCorte / dCT);
+            document.getElementById('previewCTROL').textContent = fmt(nRolo / dCT);
+        }
+        
+        // ========== SIMULADOR ==========
+        function openSimulator() {
+            calculateSimulation();
+            document.getElementById('simulatorModal').classList.remove('hidden');
+        }
+        
+        function closeSimulator() {
+            document.getElementById('simulatorModal').classList.add('hidden');
+        }
+        
+        function calculateSimulation() {
+            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
+            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
+            
+            document.getElementById('simFactorBase').textContent = base.toFixed(4);
+            document.getElementById('simShowF1').textContent = calcParams.factor1;
+            document.getElementById('simShowF2').textContent = calcParams.factor2;
+            document.getElementById('simShowF3').textContent = calcParams.factor3;
+            document.getElementById('simShowBase').textContent = base.toFixed(4);
+            
+            const nCorte = base * calcParams.markupCorte * price;
+            const nRolo = base * calcParams.markupRolo * price;
+            
+            document.getElementById('simCard18CRT').textContent = fmt(nCorte / calcParams.div18);
+            document.getElementById('simCard18ROL').textContent = fmt(nRolo / calcParams.div18);
+            document.getElementById('simCard12CRT').textContent = fmt(nCorte / calcParams.div12);
+            document.getElementById('simCard12ROL').textContent = fmt(nRolo / calcParams.div12);
+            document.getElementById('simCard7CRT').textContent = fmt(nCorte / calcParams.div07);
+            document.getElementById('simCard7ROL').textContent = fmt(nRolo / calcParams.div07);
+            document.getElementById('simCardCTCRT').textContent = fmt(nCorte / calcParams.divCT);
+            document.getElementById('simCardCTROL').textContent = fmt(nRolo / calcParams.divCT);
+        }
+        
+        function copySimulationResult() {
+            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
+            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
+            const nCorte = base * calcParams.markupCorte * price;
+            const nRolo = base * calcParams.markupRolo * price;
+            
+            const text = `SIMULADOR $/m² ${price}
+18% CRT: ${fmt(nCorte / calcParams.div18)}
+18% ROL: ${fmt(nRolo / calcParams.div18)}
+12% CRT: ${fmt(nCorte / calcParams.div12)}
+12% ROL: ${fmt(nRolo / calcParams.div12)}
+7% CRT: ${fmt(nCorte / calcParams.div07)}
+7% ROL: ${fmt(nRolo / calcParams.div07)}
+CT CRT: ${fmt(nCorte / calcParams.divCT)}
+CT ROL: ${fmt(nRolo / calcParams.divCT)}`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('📋 Resultados copiados!', 'success');
+            });
+        }
+        
+        // ========== UTILITÁRIOS ==========
+        function fmt(n) {
+            if (n === null || n === undefined || isNaN(n)) return '-';
+            return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        
+        function parseNum(v) {
+            if (v === null || v === undefined) return 0;
+            if (typeof v === 'number') return v;
+            let s = String(v).replace(/[R$\s]/g, '').trim();
+            if (s.includes(',') && s.includes('.')) {
+                s = s.replace(/\./g, '').replace(',', '.');
+            } else if (s.includes(',')) {
+                s = s.replace(',', '.');
+            }
+            return parseFloat(s) || 0;
+        }
+        
+        // ========== MODOS E ARQUIVOS ==========
+        function selectMode(mode) {
+            operationMode = mode;
+            document.getElementById('modeSelection').classList.add('hidden');
+            document.getElementById('uploadSection').classList.remove('hidden');
+            
+            if (mode === 'simple') {
+                document.getElementById('simpleUpload').classList.remove('hidden');
+                document.getElementById('compareUpload').classList.add('hidden');
+            } else {
+                document.getElementById('simpleUpload').classList.add('hidden');
+                document.getElementById('compareUpload').classList.remove('hidden');
+            }
+        }
+        
+        function backToMode() {
+            document.getElementById('modeSelection').classList.remove('hidden');
+            document.getElementById('uploadSection').classList.add('hidden');
+        }
+        
+        function handleFileSelect(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const name = file.name;
+            if (type === 'simple') {
+                fileSimple = file;
+                document.getElementById('fileSimpleName').textContent = '✓ ' + name;
+            } else if (type === 'current') {
+                fileCurrent = file;
+                document.getElementById('fileCurrentName').textContent = '✓ ' + name;
+            } else if (type === 'new') {
+                fileNew = file;
+                document.getElementById('fileNewName').textContent = '✓ ' + name;
+            }
+        }
+        
+        function downloadTemplate() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet([
+                ['CÓDIGO SILÓGICA', 'MATERIAL', 'MALHA', 'FIO/mm', 'LARGURA', '$/m2']
+            ]);
+            XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
+            XLSX.writeFile(wb, 'modelo_central_mesh.xlsx');
+        }
+        
+        async function processFiles() {
+            try {
+                if (operationMode === 'simple') {
+                    if (!fileSimple) {
+                        showNotification('Selecione um arquivo', 'warning');
+                        return;
+                    }
+                    data = await readExcelFile(fileSimple);
+                    analyzeData();
+                } else {
+                    if (!fileCurrent || !fileNew) {
+                        showNotification('Selecione ambos os arquivos', 'warning');
+                        return;
+                    }
+                    currentData = await readExcelFile(fileCurrent);
+                    newData = await readExcelFile(fileNew);
+                    compareData();
+                }
+                
+                renderAnalysis();
+                document.getElementById('uploadSection').classList.add('hidden');
+                document.getElementById('analysisSection').classList.remove('hidden');
+                
+                if (operationMode === 'compare') {
+                    document.getElementById('compareStats').classList.remove('hidden');
+                }
+                
+            } catch (e) {
+                showNotification('Erro ao processar: ' + e.message, 'error');
+            }
+        }
+        
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        resolve(parseRows(rows));
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function parseRows(rows) {
+            if (rows.length < 2) return [];
+            
+            const h = rows[0].map(x => String(x || '').toUpperCase().trim());
+            
+            const findCol = (keys) => {
+                for (let i = 0; i < h.length; i++) {
+                    for (let k of keys) {
+                        if (h[i].includes(k)) return i;
+                    }
+                }
+                return -1;
+            };
+            
+            const iCode = findCol(['CÓDIGO', 'CODIGO', 'COD']);
+            const iMat = findCol(['MATERIAL', 'MAT']);
+            const iMesh = findCol(['MALHA']);
+            const iWire = findCol(['FIO']);
+            const iWidth = findCol(['LARGURA', 'LARG']);
+            const iPrice = findCol(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'M2']);
+            
+            if (iMat === -1 || iPrice === -1) {
+                throw new Error('Colunas MATERIAL e $/m2 não encontradas');
+            }
+            
+            const result = [];
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || !r.length) continue;
+                
+                const price = parseNum(r[iPrice]);
+                const material = r[iMat];
+                
+                if (!material && price === 0) continue;
+                
+                result.push({
+                    id: i,
+                    code: String(r[iCode] || '-').trim(),
+                    material: String(material || 'N/A').trim(),
+                    mesh: String(r[iMesh] || '-').trim(),
+                    wire: String(r[iWire] || '-').trim(),
+                    width: String(r[iWidth] || '-').trim(),
+                    price: price,
+                    originalPrice: price,
+                    priceOld: null,
+                    isEmpty: price === 0,
+                    isEdited: false,
+                    anomaly: false,
+                    reasons: [],
+                    changeType: null,
+                    pendingRemoval: false
+                });
+            }
+            return result;
+        }
+        
+        // ========== ANÁLISE ==========
+        function analyzeData() {
+            // Agrupar por Material + Malha + Fio
+            const groups = {};
+            data.forEach(item => {
+                const key = `${item.material}|${item.mesh}|${item.wire}`;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(item);
+            });
+            
+            // Verificar variações
+            for (let key in groups) {
+                const g = groups[key];
+                if (g.length < 2) continue;
+                
+                const prices = g.filter(x => x.price > 0).map(x => x.price);
+                if (prices.length === 0) continue;
+                
+                const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+                
+                g.forEach(item => {
+                    if (item.price > 0 && avg > 0) {
+                        const diff = Math.abs((item.price - avg) / avg);
+                        if (diff > 0.15) {
+                            item.anomaly = true;
+                            item.reasons.push(`Preço ${Math.round(diff * 100)}% ${item.price > avg ? 'acima' : 'abaixo'} da média`);
+                        }
+                    }
+                });
+            }
+            
+            // Marcar vazios
+            data.forEach(item => {
+                if (item.price === 0) {
+                    item.isEmpty = true;
+                    item.anomaly = true;
+                    item.reasons.push('Preço em branco');
+                }
+            });
+            
+            updateStats();
+        }
+        
+        function compareData() {
+            const currentMap = {};
+            currentData.forEach(item => {
+                const key = `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
+                currentMap[key] = item;
+            });
+            
+            data = [];
+            
+            newData.forEach(item => {
+                const key = `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
+                const curr = currentMap[key];
+                
+                if (curr) {
+                    item.priceOld = curr.price;
+                    if (Math.abs(item.price - curr.price) > 0.01) {
+                        item.changeType = 'changed';
+                        item.anomaly = true;
+                        item.reasons.push('Preço alterado');
+                    }
+                    delete currentMap[key];
+                } else {
+                    item.changeType = 'new';
+                    item.anomaly = true;
+                    item.reasons.push('Item novo');
+                }
+                
+                if (item.price === 0) {
+                    item.isEmpty = true;
+                    item.reasons.push('Preço em branco');
+                }
+                
+                data.push(item);
+            });
+            
+            // Itens removidos
+            for (let key in currentMap) {
+                const item = currentMap[key];
+                item.changeType = 'removed';
+                item.pendingRemoval = true;
+                item.anomaly = true;
+                item.reasons.push('Item não existe na nova tabela');
+                data.push(item);
+            }
+            
+            updateStats();
+        }
+        
+        function updateStats() {
+            document.getElementById('totalCount').textContent = data.length;
+            document.getElementById('reviewCount').textContent = data.filter(x => x.anomaly && !x.isEmpty).length;
+            document.getElementById('emptyCount').textContent = data.filter(x => x.isEmpty).length;
+            
+            if (operationMode === 'compare') {
+                document.getElementById('changedCount').textContent = data.filter(x => x.changeType === 'changed').length;
+                document.getElementById('newCount').textContent = data.filter(x => x.changeType === 'new').length;
+            }
+        }
+        
+        // ========== RENDERIZAÇÃO ==========
+        function renderAnalysis() {
+            const tbody = document.getElementById('analysisTableBody');
+            tbody.innerHTML = '';
+            
+            // Popular filtros
+            populateFilters();
+            
+            data.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-idx', idx);
+                
+                // Classes baseadas no status
+                let rowClass = 'transition-colors';
+                if (item.isEmpty) rowClass += ' bg-red-50';
+                else if (item.isEdited) rowClass += ' bg-amber-50';
+                else if (item.pendingRemoval) rowClass += ' bg-yellow-50';
+                else if (item.changeType === 'new') rowClass += ' bg-emerald-50';
+                else if (item.changeType === 'changed') rowClass += ' bg-blue-50';
+                else if (item.anomaly) rowClass += ' bg-red-50';
+                tr.className = rowClass;
+                
+                // Status badge
+                let statusBadge = '';
+                if (item.isEmpty) statusBadge = '<span class="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Vazio</span>';
+                else if (item.isEdited) statusBadge = '<span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">Editado</span>';
+                else if (item.pendingRemoval) statusBadge = '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Remover?</span>';
+                else if (item.changeType === 'new') statusBadge = '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Novo</span>';
+                else if (item.changeType === 'changed') statusBadge = '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Alterado</span>';
+                else if (item.anomaly) statusBadge = '<span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Revisar</span>';
+                else statusBadge = '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">OK</span>';
+                
+                // Variação
+                let variation = '-';
+                if (item.priceOld !== null && item.priceOld > 0) {
+                    const pct = ((item.price - item.priceOld) / item.priceOld) * 100;
+                    const color = pct > 0 ? 'text-red-600' : 'text-emerald-600';
+                    variation = `<span class="${color} font-medium">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%</span>`;
+                }
+                
+                // Ações
+                let actions = '';
+                if (item.pendingRemoval) {
+                    actions = `
+                        <button onclick="confirmRemoval(${idx})" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded mr-1">Remover</button>
+                        <button onclick="keepItem(${idx})" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded">Manter</button>
+                    `;
+                } else if (item.isEdited) {
+                    actions = `<button onclick="resetPrice(${idx})" class="text-xs bg-slate-500 hover:bg-slate-600 text-white px-2 py-1 rounded">Desfazer</button>`;
+                }
+                
+                tr.innerHTML = `
+                    <td class="p-3">${statusBadge}</td>
+                    <td class="p-3 font-mono text-slate-500 text-xs">${item.code}</td>
+                    <td class="p-3 font-medium text-slate-800">${item.material}</td>
+                    <td class="p-3 text-center">${item.mesh}</td>
+                    <td class="p-3 text-center">${item.wire}</td>
+                    <td class="p-3 text-center">${item.width}</td>
+                    <td class="p-3 text-center text-slate-500">${item.priceOld !== null ? '$' + fmt(item.priceOld) : '-'}</td>
+                    <td class="p-3 text-center font-medium">${item.price > 0 ? '$' + fmt(item.price) : '-'}</td>
+                    <td class="p-3 text-center">${variation}</td>
+                    <td class="p-3 text-center bg-amber-50">
+                        <input type="number" step="0.01" value="${item.price || ''}" 
+                            onchange="updatePrice(${idx}, this.value)" 
+                            class="price-input w-20 p-1.5 border rounded-lg text-center font-medium ${item.isEmpty ? 'empty' : ''} ${item.isEdited ? 'changed' : ''}">
+                    </td>
+                    <td class="p-3 text-xs text-red-600">${item.reasons.join(', ')}</td>
+                    <td class="p-3 text-center">${actions}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            updateStats();
+        }
+        
+        function populateFilters() {
+            const materials = [...new Set(data.map(x => x.material))].sort();
+            const meshes = [...new Set(data.map(x => x.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            const wires = [...new Set(data.map(x => x.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            const selMat = document.getElementById('filterMaterial');
+            const selMesh = document.getElementById('filterMesh');
+            const selWire = document.getElementById('filterWire');
+            
+            selMat.innerHTML = '<option value="">Todos Materiais</option>' + materials.map(m => `<option value="${m}">${m}</option>`).join('');
+            selMesh.innerHTML = '<option value="">Todas Malhas</option>' + meshes.map(m => `<option value="${m}">${m}</option>`).join('');
+            selWire.innerHTML = '<option value="">Todos Fios</option>' + wires.map(w => `<option value="${w}">${w}</option>`).join('');
+        }
+        
+        function applyFilters() {
+            const mat = document.getElementById('filterMaterial').value;
+            const mesh = document.getElementById('filterMesh').value;
+            const wire = document.getElementById('filterWire').value;
+            const status = document.getElementById('filterStatus').value;
+            
+            let visible = 0;
+            document.querySelectorAll('#analysisTableBody tr').forEach(row => {
+                const idx = parseInt(row.getAttribute('data-idx'));
+                const item = data[idx];
+                
+                let show = true;
+                if (mat && item.material !== mat) show = false;
+                if (mesh && item.mesh !== mesh) show = false;
+                if (wire && item.wire !== wire) show = false;
+                
+                if (status === 'review' && !item.anomaly) show = false;
+                if (status === 'empty' && !item.isEmpty) show = false;
+                if (status === 'changed' && item.changeType !== 'changed') show = false;
+                if (status === 'new' && item.changeType !== 'new') show = false;
+                if (status === 'ok' && (item.anomaly || item.isEmpty)) show = false;
+                
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            
+            document.getElementById('filteredInfo').textContent = `Exibindo: ${visible} itens`;
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterMaterial').value = '';
+            document.getElementById('filterMesh').value = '';
+            document.getElementById('filterWire').value = '';
+            document.getElementById('filterStatus').value = '';
+            applyFilters();
+        }
+        
+        function updatePrice(idx, value) {
+            const item = data[idx];
+            const newPrice = parseFloat(value) || 0;
+            item.price = newPrice;
+            item.isEdited = newPrice !== item.originalPrice;
+            item.isEmpty = newPrice === 0;
+            renderAnalysis();
+            applyFilters();
+        }
+        
+        function resetPrice(idx) {
+            const item = data[idx];
+            item.price = item.originalPrice;
+            item.isEdited = false;
+            item.isEmpty = item.price === 0;
+            renderAnalysis();
+            applyFilters();
+        }
+        
+        function confirmRemoval(idx) {
+            data[idx].pendingRemoval = false;
+            data[idx].changeType = 'removed_confirmed';
+            renderAnalysis();
+            applyFilters();
+        }
+        
+        function keepItem(idx) {
+            data[idx].pendingRemoval = false;
+            data[idx].changeType = null;
+            data[idx].anomaly = false;
+            data[idx].reasons = [];
+            renderAnalysis();
+            applyFilters();
+        }
+        
+        function approveAllVisible() {
+            let count = 0;
+            document.querySelectorAll('#analysisTableBody tr').forEach(row => {
+                if (row.style.display === 'none') return;
+                const idx = parseInt(row.getAttribute('data-idx'));
+                const item = data[idx];
+                if (item.anomaly && !item.isEmpty && !item.pendingRemoval) {
+                    item.anomaly = false;
+                    item.reasons = [];
+                    count++;
+                }
+            });
+            renderAnalysis();
+            applyFilters();
+            showNotification(`✓ ${count} itens aprovados`, 'success');
+        }
+        
+        // ========== SALVAR NA NUVEM ==========
+        async function saveToCloud() {
+            const url = operationMode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
+            
+            if (!url) {
+                showNotification('Configure a URL da nuvem', 'warning');
+                return;
+            }
+            
+            const name = prompt('Nome desta análise:');
+            if (!name) return;
+            
+            try {
+                const payload = {
+                    action: 'save',
+                    name: name,
+                    mode: operationMode,
+                    itemCount: data.length,
+                    userName: CLOUD_CONFIG.DEFAULT_USER,
+                    data: data,
+                    currentData: currentData,
+                    newData: newData
+                };
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('✅ Salvo na nuvem!', 'success');
+                    loadCloudAnalyses(operationMode);
+                } else {
+                    showNotification('❌ Erro: ' + (result.error || 'Desconhecido'), 'error');
+                }
+            } catch (e) {
+                showNotification('❌ Erro de conexão', 'error');
+            }
+        }
+        
+        async function loadCloudAnalyses(mode) {
+            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
+            const container = mode === 'compare' ? document.getElementById('compareAnalysesList') : document.getElementById('simpleAnalysesList');
+            
+            if (!url) {
+                container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">URL não configurada</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(url + '?action=list');
+                const analyses = await response.json();
+                
+                if (!Array.isArray(analyses) || analyses.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Nenhuma análise salva</p>';
+                    return;
+                }
+                
+                container.innerHTML = analyses.slice(0, 5).map(a => {
+                    const date = new Date(a.timestamp).toLocaleString('pt-BR');
+                    return `
+                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 hover:shadow-sm transition">
+                            <div>
+                                <p class="font-medium text-slate-800">${a.name || 'Sem nome'}</p>
+                                <p class="text-xs text-slate-400">${a.itemCount} itens | ${date}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="loadFromCloud('${a.id}', '${mode}')" class="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg">Carregar</button>
+                                <button onclick="deleteFromCloud('${a.id}', '${mode}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1.5 rounded-lg">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                container.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Erro ao carregar</p>';
+            }
+        }
+        
+        async function loadFromCloud(id, mode) {
+            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
+            
+            try {
+                const response = await fetch(url + '?action=load&id=' + id);
+                const result = await response.json();
+                
+                if (result.error) {
+                    showNotification('❌ ' + result.error, 'error');
+                    return;
+                }
+                
+                operationMode = mode;
+                data = result.data || [];
+                currentData = result.currentData || [];
+                newData = result.newData || [];
+                
+                document.getElementById('modeSelection').classList.add('hidden');
+                document.getElementById('cloudAnalyses').classList.add('hidden');
+                document.getElementById('analysisSection').classList.remove('hidden');
+                
+                if (mode === 'compare') {
+                    document.getElementById('compareStats').classList.remove('hidden');
+                }
+                
+                renderAnalysis();
+                showNotification('✅ Análise carregada!', 'success');
+            } catch (e) {
+                showNotification('❌ Erro de conexão', 'error');
+            }
+        }
+        
+        async function deleteFromCloud(id, mode) {
+            if (!confirm('Excluir esta análise?')) return;
+            
+            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
+            
+            try {
+                await fetch(url + '?action=delete&id=' + id);
+                loadCloudAnalyses(mode);
+                showNotification('🗑️ Análise excluída', 'info');
+            } catch (e) {
+                showNotification('❌ Erro ao excluir', 'error');
+            }
+        }
+        
+        // ========== RELATÓRIO ==========
+        function generateReport() {
+            // Filtrar itens removidos confirmados
+            const finalData = data.filter(x => x.changeType !== 'removed_confirmed' && !x.pendingRemoval);
+            
+            document.getElementById('analysisSection').classList.add('hidden');
+            document.getElementById('reportSection').classList.remove('hidden');
+            
+            const now = new Date();
+            document.getElementById('reportDate').textContent = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+            document.getElementById('footerDate').textContent = now.toLocaleString('pt-BR');
+            
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            
+            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
+            
+            finalData.forEach(item => {
+                const p = item.price;
+                const nCorte = base * calcParams.markupCorte * p;
+                const nRolo = base * calcParams.markupRolo * p;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-indigo-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-2 border border-slate-200 font-mono text-xs">${item.code}</td>
+                    <td class="p-2 border border-slate-200 font-medium">${item.material}</td>
+                    <td class="p-2 border border-slate-200 text-center">${item.mesh}</td>
+                    <td class="p-2 border border-slate-200 text-center">${item.wire}</td>
+                    <td class="p-2 border border-slate-200 text-center">${item.width}</td>
+                    <td class="p-2 border border-slate-200 text-right bg-slate-50 hide-for-vendors">${fmt(p)}</td>
+                    <td class="p-2 border border-slate-200 text-right">${fmt(nCorte / calcParams.div18)}</td>
+                    <td class="p-2 border border-slate-200 text-right">${fmt(nRolo / calcParams.div18)}</td>
+                    <td class="p-2 border border-slate-200 text-right">${fmt(nCorte / calcParams.div12)}</td>
+                    <td class="p-2 border border-slate-200 text-right">${fmt(nRolo / calcParams.div12)}</td>
+                    <td class="p-2 border border-slate-200 text-right">${fmt(nCorte / calcParams.div07)}</td>
+                    <td class="p-2 border border-slate-200 text-right">${fmt(nRolo / calcParams.div07)}</td>
+                    <td class="p-2 border border-slate-200 text-right hide-for-vendors">${fmt(nCorte / calcParams.divCT)}</td>
+                    <td class="p-2 border border-slate-200 text-right hide-for-vendors">${fmt(nRolo / calcParams.divCT)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // Popular filtros do relatório
+            const materials = [...new Set(finalData.map(x => x.material))].sort();
+            const meshes = [...new Set(finalData.map(x => x.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            const wires = [...new Set(finalData.map(x => x.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            
+            document.getElementById('reportFilterMaterial').innerHTML = '<option value="">Material</option>' + materials.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('reportFilterMesh').innerHTML = '<option value="">Malha</option>' + meshes.map(m => `<option value="${m}">${m}</option>`).join('');
+            document.getElementById('reportFilterWire').innerHTML = '<option value="">Fio</option>' + wires.map(w => `<option value="${w}">${w}</option>`).join('');
+        }
+        
+        function applyReportFilters() {
+            const code = document.getElementById('reportFilterCode').value.toUpperCase();
+            const mat = document.getElementById('reportFilterMaterial').value;
+            const mesh = document.getElementById('reportFilterMesh').value;
+            const wire = document.getElementById('reportFilterWire').value;
+            
+            document.querySelectorAll('#reportTableBody tr').forEach(row => {
+                const cells = row.cells;
+                let show = true;
+                
+                if (code && !cells[0].textContent.toUpperCase().includes(code)) show = false;
+                if (mat && cells[1].textContent !== mat) show = false;
+                if (mesh && cells[2].textContent !== mesh) show = false;
+                if (wire && cells[3].textContent !== wire) show = false;
+                
+                row.style.display = show ? '' : 'none';
+            });
+        }
+        
+        function clearReportFilters() {
+            document.getElementById('reportFilterCode').value = '';
+            document.getElementById('reportFilterMaterial').value = '';
+            document.getElementById('reportFilterMesh').value = '';
+            document.getElementById('reportFilterWire').value = '';
+            applyReportFilters();
+        }
+        
+        function exportExcel() {
+            const finalData = data.filter(x => x.changeType !== 'removed_confirmed' && !x.pendingRemoval);
+            const base = calcParams.factor1 * calcParams.factor2 * calcParams.factor3;
+            
+            const rows = [['CÓDIGO', 'MATERIAL', 'MALHA', 'FIO', 'LARGURA', '$/m²', '18% CRT', '18% ROL', '12% CRT', '12% ROL', '7% CRT', '7% ROL', 'CT CRT', 'CT ROL']];
+            
+            finalData.forEach(item => {
+                const p = item.price;
+                const nCorte = base * calcParams.markupCorte * p;
+                const nRolo = base * calcParams.markupRolo * p;
+                
+                rows.push([
+                    item.code, item.material, item.mesh, item.wire, item.width, p,
+                    nCorte / calcParams.div18, nRolo / calcParams.div18,
+                    nCorte / calcParams.div12, nRolo / calcParams.div12,
+                    nCorte / calcParams.div07, nRolo / calcParams.div07,
+                    nCorte / calcParams.divCT, nRolo / calcParams.divCT
+                ]);
+            });
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, 'Tabela');
+            XLSX.writeFile(wb, 'tabela_central_mesh.xlsx');
+        }
+        
+        function publishComplete() {
+            document.querySelector('nav').classList.add('hidden');
+            document.getElementById('reportActions').classList.add('hidden');
+            document.getElementById('publicFooter').classList.remove('hidden');
+            document.getElementById('reportSection').classList.remove('vendors-mode');
+        }
+        
+        function publishVendors() {
+            document.querySelector('nav').classList.add('hidden');
+            document.getElementById('reportActions').classList.add('hidden');
+            document.getElementById('publicFooter').classList.remove('hidden');
+            document.getElementById('reportSection').classList.add('vendors-mode');
+        }
+        
+        function copyEmbedCode(type) {
+            const table = document.getElementById('reportTable').outerHTML;
+            const isVendors = type === 'vendors';
+            
+            const code = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Mesh - Tabela de Preços</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+    <style>${isVendors ? '.hide-for-vendors { display: none !important; }' : ''}</style>
+</head>
+<body class="bg-white p-8">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-indigo-600">TABELA OFICIAL DE PREÇOS</h1>
+        <h2 class="text-xl text-slate-600">Central Mesh</h2>
+    </div>
+    ${table}
+    <div class="mt-8 text-center text-slate-400 text-xs">Central Mesh - v4.00</div>
+</body>
+</html>`;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification('📋 Código copiado!', 'success');
+            });
+        }
+        
+        // ========== APPS SCRIPT ==========
+        function showAppsScriptCode() {
+            const code = `// ============================================
+// CENTRAL MESH - API v4.00
 // Cole este código em AMBAS as planilhas
 // ============================================
 
@@ -894,14 +1782,14 @@ function doGet(e) {
         result = loadConfig(e.parameter.key);
         break;
       default:
-        result = { error: 'Ação GET inválida: ' + action };
+        result = { error: 'Ação inválida' };
     }
     
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: 'GET Error: ' + error.toString() }))
+    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -923,27 +1811,28 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: 'POST Error: ' + error.toString() }))
+    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-// ========== CONFIGURAÇÕES ==========
-function ensureConfigSheet() {
+function ensureSheet(name, headers) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_CONFIG);
+  let sheet = ss.getSheetByName(name);
   
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_CONFIG);
-    sheet.appendRow(['KEY', 'DATA', 'UPDATED']);
-    sheet.getRange(1, 1, 1, 3).setBackground('#4285f4').setFontColor('#ffffff').setFontWeight('bold');
+    sheet = ss.insertSheet(name);
+    if (headers) {
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setBackground('#4285f4').setFontColor('#fff').setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
   }
-  
   return sheet;
 }
 
 function loadConfig(key) {
-  const sheet = ensureConfigSheet();
+  const sheet = ensureSheet(SHEET_CONFIG, ['KEY', 'DATA', 'UPDATED']);
   const data = sheet.getDataRange().getValues();
   
   for (let i = 1; i < data.length; i++) {
@@ -951,128 +1840,78 @@ function loadConfig(key) {
       return { key: data[i][0], data: data[i][1], updated: data[i][2] };
     }
   }
-  
   return { key: key, data: null };
 }
 
 function saveConfig(key, value) {
-  const sheet = ensureConfigSheet();
+  const sheet = ensureSheet(SHEET_CONFIG, ['KEY', 'DATA', 'UPDATED']);
   const data = sheet.getDataRange().getValues();
-  
   const row = [key, value, new Date().toISOString()];
   
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === key) {
       sheet.getRange(i + 1, 1, 1, 3).setValues([row]);
-      return { success: true, message: 'Config atualizada!' };
+      return { success: true };
     }
   }
-  
   sheet.appendRow(row);
-  return { success: true, message: 'Config criada!' };
-}
-
-// ========== ANÁLISES ==========
-function ensureDataSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_DATA);
-  
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_DATA);
-  }
-  
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['ID', 'Nome', 'Arquivos', 'Qtd', 'Data', 'Usuario', 'DataJSON', 'CurrentJSON', 'NewJSON']);
-    sheet.getRange(1, 1, 1, 9).setBackground('#4285f4').setFontColor('#ffffff').setFontWeight('bold');
-    sheet.setFrozenRows(1);
-  }
-  
-  return sheet;
+  return { success: true };
 }
 
 function listAnalyses() {
-  const sheet = ensureDataSheet();
+  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
   const data = sheet.getDataRange().getValues();
   
   if (data.length <= 1) return [];
   
-  const analyses = [];
-  for (let i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    
-    analyses.push({
-      id: data[i][0],
-      name: data[i][1],
-      fileNames: data[i][2],
-      itemCount: data[i][3],
-      timestamp: data[i][4],
-      userName: data[i][5]
-    });
-  }
-  
-  analyses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  return analyses;
+  return data.slice(1).filter(r => r[0]).map(r => ({
+    id: r[0], name: r[1], mode: r[2], itemCount: r[3], timestamp: r[4], userName: r[5]
+  })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 function loadAnalysis(id) {
-  const sheet = ensureDataSheet();
+  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
   const data = sheet.getDataRange().getValues();
   
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       return {
-        id: data[i][0],
-        name: data[i][1],
-        fileNames: data[i][2],
-        itemCount: data[i][3],
-        timestamp: data[i][4],
-        userName: data[i][5],
+        id: data[i][0], name: data[i][1], mode: data[i][2], itemCount: data[i][3],
+        timestamp: data[i][4], userName: data[i][5],
         data: data[i][6] ? JSON.parse(data[i][6]) : [],
         currentData: data[i][7] ? JSON.parse(data[i][7]) : [],
         newData: data[i][8] ? JSON.parse(data[i][8]) : []
       };
     }
   }
-  
-  return { error: 'Análise não encontrada' };
+  return { error: 'Não encontrado' };
 }
 
 function saveAnalysis(payload) {
-  const sheet = ensureDataSheet();
+  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
   
   const id = payload.id || Utilities.getUuid();
   const row = [
-    id,
-    payload.name || payload.fileNames || 'Sem nome',
-    payload.fileNames || '',
-    payload.itemCount || 0,
-    new Date().toISOString(),
-    payload.userName || 'Anônimo',
+    id, payload.name || 'Sem nome', payload.mode || 'simple', payload.itemCount || 0,
+    new Date().toISOString(), payload.userName || 'Anônimo',
     JSON.stringify(payload.data || []),
     JSON.stringify(payload.currentData || []),
     JSON.stringify(payload.newData || [])
   ];
   
   const data = sheet.getDataRange().getValues();
-  let found = false;
-  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
-      found = true;
-      break;
+      return { success: true, id: id };
     }
   }
-  
-  if (!found) {
-    sheet.appendRow(row);
-  }
-  
+  sheet.appendRow(row);
   return { success: true, id: id };
 }
 
 function deleteAnalysis(id) {
-  const sheet = ensureDataSheet();
+  const sheet = ensureSheet(SHEET_DATA, ['ID', 'Nome', 'Modo', 'Qtd', 'Data', 'Usuario', 'Data JSON', 'CurrentData', 'NewData']);
   const data = sheet.getDataRange().getValues();
   
   for (let i = 1; i < data.length; i++) {
@@ -1081,19 +1920,10 @@ function deleteAnalysis(id) {
       return { success: true };
     }
   }
-  
-  return { error: 'Análise não encontrada' };
-}
-
-// Função de teste
-function testar() {
-  Logger.log('Teste OK!');
-  Logger.log('Análises: ' + listAnalyses().length);
-  Logger.log('Config calcParams: ' + JSON.stringify(loadConfig('calcParams')));
+  return { error: 'Não encontrado' };
 }`;
-
-        function showAppsScriptCode() {
-            document.getElementById('appsScriptCode').textContent = APPS_SCRIPT_CODE;
+            
+            document.getElementById('appsScriptCode').textContent = code;
             document.getElementById('appsScriptModal').classList.remove('hidden');
         }
         
@@ -1102,1007 +1932,10 @@ function testar() {
         }
         
         function copyAppsScriptCode() {
-            navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(() => {
-                alert('✅ Código copiado para a área de transferência!');
+            const code = document.getElementById('appsScriptCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showNotification('📋 Código copiado!', 'success');
             });
-        }
-
-        // ========== SIMULADOR DE PREÇOS ==========
-        function openSimulator() {
-            calculateSimulation();
-            document.getElementById('simulatorModal').classList.remove('hidden');
-        }
-        
-        function closeSimulator() {
-            document.getElementById('simulatorModal').classList.add('hidden');
-        }
-        
-        function calculateSimulation() {
-            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
-            const C = getCommonFactor();
-            
-            document.getElementById('simFactorBase').textContent = C.toFixed(4);
-            document.getElementById('simShowF1').textContent = calcParams.factor1;
-            document.getElementById('simShowF2').textContent = calcParams.factor2;
-            document.getElementById('simShowF3').textContent = calcParams.factor3;
-            document.getElementById('simShowBase').textContent = C.toFixed(4);
-            
-            const numCorte = C * calcParams.markupCorte * price;
-            const numRolo = C * calcParams.markupRolo * price;
-            
-            const results = {
-                '18CRT': { faixa: '18%', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.div18, preco: numCorte / calcParams.div18 },
-                '18ROL': { faixa: '18%', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.div18, preco: numRolo / calcParams.div18 },
-                '12CRT': { faixa: '12%', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.div12, preco: numCorte / calcParams.div12 },
-                '12ROL': { faixa: '12%', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.div12, preco: numRolo / calcParams.div12 },
-                '7CRT': { faixa: '7%', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.div07, preco: numCorte / calcParams.div07 },
-                '7ROL': { faixa: '7%', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.div07, preco: numRolo / calcParams.div07 },
-                'CTCRT': { faixa: 'CT', tipo: 'Corte', markup: calcParams.markupCorte, divisor: calcParams.divCT, preco: numCorte / calcParams.divCT },
-                'CTROL': { faixa: 'CT', tipo: 'Rolo', markup: calcParams.markupRolo, divisor: calcParams.divCT, preco: numRolo / calcParams.divCT }
-            };
-            
-            const tbody = document.getElementById('simResultsBody');
-            tbody.innerHTML = '';
-            
-            const colors = { '18%': 'bg-red-50', '12%': 'bg-yellow-50', '7%': 'bg-green-50', 'CT': 'bg-gray-100' };
-            
-            for (const [key, d] of Object.entries(results)) {
-                const formula = `(${C.toFixed(3)} × ${d.markup} × ${price.toFixed(2)}) ÷ ${d.divisor}`;
-                const tr = document.createElement('tr');
-                tr.className = colors[d.faixa];
-                tr.innerHTML = `
-                    <td class="p-2 border">${d.faixa}</td>
-                    <td class="p-2 border">${d.tipo}</td>
-                    <td class="p-2 border">${d.markup}</td>
-                    <td class="p-2 border">${d.divisor}</td>
-                    <td class="p-2 border text-xs font-mono">${formula}</td>
-                    <td class="p-2 border font-bold text-lg text-orange-700 bg-orange-50">${fmt(d.preco)}</td>
-                `;
-                tbody.appendChild(tr);
-            }
-            
-            document.getElementById('simCard18CRT').textContent = fmt(results['18CRT'].preco);
-            document.getElementById('simCard18ROL').textContent = fmt(results['18ROL'].preco);
-            document.getElementById('simCard12CRT').textContent = fmt(results['12CRT'].preco);
-            document.getElementById('simCard12ROL').textContent = fmt(results['12ROL'].preco);
-            document.getElementById('simCard7CRT').textContent = fmt(results['7CRT'].preco);
-            document.getElementById('simCard7ROL').textContent = fmt(results['7ROL'].preco);
-            document.getElementById('simCardCTCRT').textContent = fmt(results['CTCRT'].preco);
-            document.getElementById('simCardCTROL').textContent = fmt(results['CTROL'].preco);
-        }
-        
-        function copySimulationResult() {
-            const price = parseFloat(document.getElementById('simInputPrice').value) || 0;
-            const C = getCommonFactor();
-            const numCorte = C * calcParams.markupCorte * price;
-            const numRolo = C * calcParams.markupRolo * price;
-            
-            const text = `SIMULADOR - $/m² ${price}\n18% CRT: ${fmt(numCorte/calcParams.div18)}\n18% ROL: ${fmt(numRolo/calcParams.div18)}\n12% CRT: ${fmt(numCorte/calcParams.div12)}\n12% ROL: ${fmt(numRolo/calcParams.div12)}\n7% CRT: ${fmt(numCorte/calcParams.div07)}\n7% ROL: ${fmt(numRolo/calcParams.div07)}\nCT CRT: ${fmt(numCorte/calcParams.divCT)}\nCT ROL: ${fmt(numRolo/calcParams.divCT)}`;
-            navigator.clipboard.writeText(text).then(() => alert('✅ Copiado!'));
-        }
-
-        // ========== CLOUD - ANÁLISES ==========
-        async function loadCloudAnalyses() {
-            // Análises Simples
-            if (CLOUD_CONFIG.URL_SIMPLE) {
-                document.getElementById('step-cloud-simple').classList.remove('hidden');
-                try {
-                    const r = await fetch(CLOUD_CONFIG.URL_SIMPLE + '?action=list');
-                    const list = await r.json();
-                    renderCloudList('cloudSimpleList', list, 'simple');
-                } catch(e) {
-                    document.getElementById('cloudSimpleList').innerHTML = '<p class="text-red-600 text-sm">Erro ao carregar</p>';
-                }
-            }
-            
-            // Comparativos
-            if (CLOUD_CONFIG.URL_COMPARE) {
-                document.getElementById('step-cloud-compare').classList.remove('hidden');
-                try {
-                    const r = await fetch(CLOUD_CONFIG.URL_COMPARE + '?action=list');
-                    const list = await r.json();
-                    renderCloudList('cloudCompareList', list, 'compare');
-                } catch(e) {
-                    document.getElementById('cloudCompareList').innerHTML = '<p class="text-red-600 text-sm">Erro ao carregar</p>';
-                }
-            }
-        }
-        
-        function renderCloudList(containerId, list, mode) {
-            const container = document.getElementById(containerId);
-            if (!Array.isArray(list) || list.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-sm">Nenhuma análise salva.</p>';
-                return;
-            }
-            
-            const bgClass = mode === 'simple' ? 'bg-white border-blue-200' : 'bg-white border-green-200';
-            const icon = mode === 'simple' ? '📊' : '🔄';
-            
-            container.innerHTML = list.map(a => {
-                const date = new Date(a.timestamp).toLocaleString('pt-BR');
-                return `
-                <div class="${bgClass} border rounded p-3 flex items-center justify-between">
-                    <div class="flex-1">
-                        <span class="font-bold">${icon} ${a.name || 'Sem nome'}</span>
-                        <span class="text-xs text-gray-500 ml-2">(${a.itemCount} itens)</span>
-                        <br><span class="text-xs text-gray-400">👤 ${a.userName || 'Anônimo'} | 📅 ${date}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="loadFromCloud('${a.id}', '${mode}')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm">Carregar</button>
-                        <button onclick="deleteFromCloud('${a.id}', '${mode}')" class="bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded text-xs">🗑️</button>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-        
-        function refreshCloudAnalyses(mode) {
-            loadCloudAnalyses();
-        }
-        
-        async function loadFromCloud(id, mode) {
-            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            try {
-                const r = await fetch(url + '?action=load&id=' + id);
-                const result = await r.json();
-                if (result.error) throw new Error(result.error);
-                
-                currentAnalysisId = result.id;
-                operationMode = mode;
-                data = result.data || [];
-                if (result.currentData) currentData = result.currentData;
-                if (result.newData) newData = result.newData;
-                
-                if (mode === 'compare') {
-                    document.getElementById('compareStats').classList.remove('hidden');
-                    document.getElementById('btnExportComparative').classList.remove('hidden');
-                }
-                
-                renderAnalysis();
-                showStep('review');
-                
-                if (CLOUD_CONFIG.URL_SIMPLE || CLOUD_CONFIG.URL_COMPARE) {
-                    document.getElementById('btnSaveCloud').classList.remove('hidden');
-                }
-                
-                alert('✅ Análise carregada!');
-            } catch(e) {
-                alert('❌ Erro: ' + e.message);
-            }
-        }
-        
-        async function deleteFromCloud(id, mode) {
-            if (!confirm('Excluir esta análise?')) return;
-            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            try {
-                await fetch(url + '?action=delete&id=' + id);
-                loadCloudAnalyses();
-            } catch(e) {
-                alert('❌ Erro: ' + e.message);
-            }
-        }
-        
-        async function saveToCloud() {
-            const url = operationMode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            if (!url) {
-                alert('⚠️ URL da nuvem não configurada para este modo!');
-                return;
-            }
-            
-            const name = prompt('Nome desta análise:');
-            if (!name) return;
-            
-            const btn = document.getElementById('btnSaveCloud');
-            btn.innerHTML = '⏳ Salvando...';
-            btn.disabled = true;
-            
-            try {
-                const payload = {
-                    action: 'save',
-                    mode: operationMode,
-                    id: currentAnalysisId || (operationMode + '_' + Date.now()),
-                    name: name,
-                    fileNames: name,
-                    userName: CLOUD_CONFIG.DEFAULT_USER || 'Usuário',
-                    itemCount: data.length,
-                    data: data,
-                    currentData: currentData,
-                    newData: newData
-                };
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    mode: 'cors',
-                    redirect: 'follow',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const text = await response.text();
-                const result = JSON.parse(text);
-                
-                if (result.success) {
-                    currentAnalysisId = result.id;
-                    alert('✅ Salvo na nuvem!');
-                    loadCloudAnalyses();
-                } else {
-                    throw new Error(result.error || 'Erro desconhecido');
-                }
-            } catch(e) {
-                alert('❌ Erro ao salvar: ' + e.message);
-            } finally {
-                btn.innerHTML = '☁️ Salvar na Nuvem';
-                btn.disabled = false;
-            }
-        }
-
-        // ========== CACHE LOCAL ==========
-        function checkCachedData() {
-            const cacheSimple = localStorage.getItem('centralMesh_simple');
-            const cacheCompare = localStorage.getItem('centralMesh_compare');
-            
-            if (!cacheSimple && !cacheCompare) return;
-            
-            let html = '';
-            
-            if (cacheSimple) {
-                const p = JSON.parse(cacheSimple);
-                html += `<div class="bg-blue-50 border border-blue-300 rounded p-3 mb-2 flex justify-between items-center">
-                    <div><strong>📊 Análise Simples</strong> (${p.data?.length || 0} itens)<br><span class="text-xs text-gray-500">${new Date(p.timestamp).toLocaleString('pt-BR')}</span></div>
-                    <div><button onclick="loadCachedData('simple')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm mr-2">Carregar</button><button onclick="clearCache('simple')" class="text-red-500 text-sm">🗑️</button></div>
-                </div>`;
-            }
-            
-            if (cacheCompare) {
-                const p = JSON.parse(cacheCompare);
-                html += `<div class="bg-green-50 border border-green-300 rounded p-3 flex justify-between items-center">
-                    <div><strong>🔄 Comparativo</strong> (${p.data?.length || 0} itens)<br><span class="text-xs text-gray-500">${new Date(p.timestamp).toLocaleString('pt-BR')}</span></div>
-                    <div><button onclick="loadCachedData('compare')" class="bg-green-500 text-white px-3 py-1 rounded text-sm mr-2">Carregar</button><button onclick="clearCache('compare')" class="text-red-500 text-sm">🗑️</button></div>
-                </div>`;
-            }
-            
-            document.getElementById('cacheInfo').innerHTML = html;
-            document.getElementById('step-cached').classList.remove('hidden');
-        }
-        
-        function loadCachedData(mode) {
-            const key = mode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
-            const p = JSON.parse(localStorage.getItem(key));
-            
-            operationMode = mode;
-            data = p.data || [];
-            currentData = p.currentData || [];
-            newData = p.newData || [];
-            
-            if (mode === 'compare') {
-                document.getElementById('compareStats').classList.remove('hidden');
-                document.getElementById('btnExportComparative').classList.remove('hidden');
-            }
-            
-            renderAnalysis();
-            showStep('review');
-            
-            if (CLOUD_CONFIG.URL_SIMPLE || CLOUD_CONFIG.URL_COMPARE) {
-                document.getElementById('btnSaveCloud').classList.remove('hidden');
-            }
-        }
-        
-        function saveToCache() {
-            const key = operationMode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
-            localStorage.setItem(key, JSON.stringify({
-                timestamp: new Date().toISOString(),
-                mode: operationMode,
-                data: data,
-                currentData: currentData,
-                newData: newData
-            }));
-        }
-        
-        function clearCache(mode) {
-            const key = mode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
-            localStorage.removeItem(key);
-            checkCachedData();
-        }
-
-        // ========== UI HELPERS ==========
-        function showStep(step) {
-            ['step-mode', 'step-input', 'step-review', 'step-report', 'step-cached', 'step-cloud-simple', 'step-cloud-compare', 'step-config-warning'].forEach(s => {
-                const el = document.getElementById(s);
-                if (el) el.classList.add('hidden');
-            });
-            
-            if (step === 'mode') {
-                document.getElementById('step-mode').classList.remove('hidden');
-                checkCachedData();
-                loadCloudAnalyses();
-            } else if (step === 'input') {
-                document.getElementById('step-input').classList.remove('hidden');
-            } else if (step === 'review') {
-                document.getElementById('step-review').classList.remove('hidden');
-            } else if (step === 'report') {
-                document.getElementById('step-report').classList.remove('hidden');
-            }
-        }
-        
-        function selectMode(mode) {
-            operationMode = mode;
-            
-            document.getElementById('modeSimple').classList.remove('border-orange-500', 'bg-orange-50');
-            document.getElementById('modeCompare').classList.remove('border-orange-500', 'bg-orange-50');
-            
-            if (mode === 'simple') {
-                document.getElementById('modeSimple').classList.add('border-orange-500', 'bg-orange-50');
-                document.getElementById('inputSimple').classList.remove('hidden');
-                document.getElementById('inputCompare').classList.add('hidden');
-            } else {
-                document.getElementById('modeCompare').classList.add('border-orange-500', 'bg-orange-50');
-                document.getElementById('inputSimple').classList.add('hidden');
-                document.getElementById('inputCompare').classList.remove('hidden');
-            }
-            
-            showStep('input');
-        }
-        
-        function goBackToMode() {
-            showStep('mode');
-        }
-
-        // ========== UTILITÁRIOS ==========
-        function fmt(n) {
-            if (n === null || n === undefined || isNaN(n)) return '-';
-            return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-        
-        function parseNum(v) {
-            if (v === null || v === undefined) return 0;
-            if (typeof v === 'number') return v;
-            let s = String(v).replace(/[R$\s]/g, '').trim();
-            if (s.includes(',') && s.includes('.')) {
-                s = s.replace(/\./g, '').replace(',', '.');
-            } else if (s.includes(',')) {
-                s = s.replace(',', '.');
-            }
-            return parseFloat(s) || 0;
-        }
-        
-        function normalizeStr(s) {
-            return String(s || '').trim().toUpperCase();
-        }
-
-        // ========== PROCESSAMENTO DE ARQUIVOS ==========
-        function downloadTemplate() {
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet([['CÓDIGO SILÓGICA', 'MATERIAL', 'MALHA', 'FIO/mm', 'LARGURA', '$/m2']]);
-            XLSX.utils.book_append_sheet(wb, ws, 'Modelo');
-            XLSX.writeFile(wb, 'modelo_central_mesh.xlsx');
-        }
-        
-        function readExcel(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    try {
-                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                        const ws = wb.Sheets[wb.SheetNames[0]];
-                        resolve(XLSX.utils.sheet_to_json(ws, { header: 1 }));
-                    } catch(err) { reject(err); }
-                };
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        
-        async function processFiles() {
-            try {
-                if (operationMode === 'simple') {
-                    const file = document.getElementById('fileInput').files[0];
-                    if (!file) return alert('Selecione um arquivo!');
-                    data = parseData(await readExcel(file));
-                    analyzeData();
-                } else {
-                    const fileCurrent = document.getElementById('fileCurrentInput').files[0];
-                    const fileNew = document.getElementById('fileNewInput').files[0];
-                    if (!fileCurrent || !fileNew) return alert('Selecione ambos os arquivos!');
-                    currentData = parseData(await readExcel(fileCurrent));
-                    newData = parseData(await readExcel(fileNew));
-                    compareData();
-                    document.getElementById('compareStats').classList.remove('hidden');
-                    document.getElementById('btnExportComparative').classList.remove('hidden');
-                }
-                
-                saveToCache();
-                renderAnalysis();
-                showStep('review');
-                
-                if (CLOUD_CONFIG.URL_SIMPLE || CLOUD_CONFIG.URL_COMPARE) {
-                    document.getElementById('btnSaveCloud').classList.remove('hidden');
-                }
-            } catch(e) {
-                alert('Erro: ' + e.message);
-            }
-        }
-        
-        function parseData(rows) {
-            if (rows.length < 2) return [];
-            
-            const h = rows[0].map(x => String(x || '').toUpperCase().trim());
-            const find = keys => {
-                let i = h.findIndex(x => keys.some(k => x === k));
-                if (i === -1) i = h.findIndex(x => keys.some(k => x.includes(k)));
-                return i;
-            };
-            
-            const iCode = find(['CÓDIGO SILÓGICA', 'CODIGO SILOGICA', 'CÓDIGO', 'CODIGO', 'COD']);
-            const iMat = find(['MATERIAL', 'MAT']);
-            const iMesh = find(['MALHA', 'MESH']);
-            const iWire = find(['FIO/MM', 'FIO', 'WIRE']);
-            const iWidth = find(['LARGURA', 'LARG', 'WIDTH']);
-            const iPrice = find(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'VALOR', 'M2']);
-            
-            let actualMatIdx = iMat;
-            let actualPriceIdx = iPrice;
-            
-            if (actualMatIdx === -1) {
-                for (let i = 0; i < h.length; i++) {
-                    if (i !== iCode && rows[1] && typeof rows[1][i] === 'string') {
-                        actualMatIdx = i;
-                        break;
-                    }
-                }
-            }
-            
-            if (actualPriceIdx === -1) {
-                for (let i = h.length - 1; i >= 0; i--) {
-                    if (rows[1] && typeof rows[1][i] === 'number') {
-                        actualPriceIdx = i;
-                        break;
-                    }
-                }
-            }
-            
-            if (actualMatIdx === -1 || actualPriceIdx === -1) {
-                throw new Error('Colunas MATERIAL e $/m2 não encontradas! Cabeçalhos: ' + h.join(', '));
-            }
-            
-            const result = [];
-            for (let i = 1; i < rows.length; i++) {
-                const r = rows[i];
-                if (!r || !r.length) continue;
-                
-                const get = idx => idx >= 0 && r[idx] !== undefined ? r[idx] : '';
-                const price = parseNum(get(actualPriceIdx));
-                const material = get(actualMatIdx);
-                
-                if (!material && price === 0) continue;
-                
-                result.push({
-                    id: i,
-                    code: String(get(iCode) || '-').trim(),
-                    material: String(material || 'N/A').trim(),
-                    mesh: String(get(iMesh) || '-').trim(),
-                    wire: String(get(iWire) || '-').trim(),
-                    width: String(get(iWidth) || '-').trim(),
-                    price: price,
-                    originalPrice: price,
-                    priceOld: null,
-                    isEmpty: price === 0,
-                    isEdited: false,
-                    anomaly: false,
-                    reasons: [],
-                    changeType: null,
-                    pendingRemoval: false
-                });
-            }
-            return result;
-        }
-
-        // ========== ANÁLISE ==========
-        function getMaterialRank(m) {
-            if (!m) return 0;
-            const u = String(m).toUpperCase();
-            if (u.includes('316')) return 40;
-            if (u.includes('304')) return 30;
-            if (u.includes('302')) return 20;
-            if (u.includes('GALV') || u.includes('CARB')) return 10;
-            return 0;
-        }
-        
-        function analyzeData() {
-            // Agrupar por Material + Malha + Fio
-            const groups = {};
-            data.forEach(item => {
-                const key = item.material + '|' + item.mesh + '|' + item.wire;
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(item);
-            });
-            
-            // Fase 1: Variação de Larguras
-            for (let key in groups) {
-                const g = groups[key];
-                if (g.length < 2) continue;
-                
-                const validPrices = g.filter(x => x.price > 0).map(x => x.price);
-                if (validPrices.length === 0) continue;
-                const avg = validPrices.reduce((s, x) => s + x, 0) / validPrices.length;
-                
-                g.forEach(item => {
-                    if (item.price > 0 && avg > 0) {
-                        const diff = Math.abs((item.price - avg) / avg);
-                        if (diff > 0.15) {
-                            item.anomaly = true;
-                            item.reasons.push('Preço ' + Math.round(diff * 100) + '% ' + (item.price > avg ? 'acima' : 'abaixo') + ' da média do grupo');
-                        }
-                    }
-                });
-            }
-            
-            // Fase 2: Hierarquia de Materiais
-            const specMap = {};
-            data.forEach(item => {
-                const key = item.mesh + '-' + item.wire + '-' + item.width;
-                if (!specMap[key]) specMap[key] = [];
-                specMap[key].push(item);
-            });
-            
-            for (let key in specMap) {
-                const items = specMap[key];
-                if (items.length < 2) continue;
-                items.sort((a, b) => getMaterialRank(a.material) - getMaterialRank(b.material));
-                
-                for (let i = 0; i < items.length; i++) {
-                    for (let j = i + 1; j < items.length; j++) {
-                        const lower = items[i], higher = items[j];
-                        if (getMaterialRank(higher.material) > getMaterialRank(lower.material)) {
-                            if (lower.price > higher.price * 1.05) {
-                                lower.anomaly = true;
-                                lower.reasons.push('Incoerência: ' + lower.material + ' mais caro que ' + higher.material);
-                                higher.anomaly = true;
-                                higher.reasons.push('Incoerência: ' + higher.material + ' mais barato que ' + lower.material);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Marcar vazios
-            data.forEach(item => {
-                if (item.price === 0) {
-                    item.isEmpty = true;
-                    item.anomaly = true;
-                    if (!item.reasons.includes('Preço em branco')) item.reasons.push('Preço em branco');
-                }
-            });
-            
-            updateCounters();
-        }
-        
-        function compareData() {
-            const currentMap = {};
-            currentData.forEach(item => {
-                const key = normalizeStr(item.code) + '|' + normalizeStr(item.material) + '|' + normalizeStr(item.mesh) + '|' + normalizeStr(item.wire) + '|' + normalizeStr(item.width);
-                currentMap[key] = item;
-            });
-            
-            data = [];
-            
-            // Processar novos
-            newData.forEach(newItem => {
-                const key = normalizeStr(newItem.code) + '|' + normalizeStr(newItem.material) + '|' + normalizeStr(newItem.mesh) + '|' + normalizeStr(newItem.wire) + '|' + normalizeStr(newItem.width);
-                const currentItem = currentMap[key];
-                
-                if (currentItem) {
-                    if (Math.abs(newItem.price - currentItem.price) > 0.01) {
-                        newItem.priceOld = currentItem.price;
-                        newItem.changeType = 'changed';
-                        newItem.anomaly = true;
-                        newItem.reasons.push('Preço alterado');
-                    }
-                    delete currentMap[key];
-                } else {
-                    newItem.changeType = 'new';
-                    newItem.anomaly = true;
-                    newItem.reasons.push('Item novo');
-                }
-                
-                if (newItem.price === 0) {
-                    newItem.isEmpty = true;
-                    if (!newItem.reasons.includes('Preço em branco')) newItem.reasons.push('Preço em branco');
-                }
-                
-                data.push(newItem);
-            });
-            
-            // Itens removidos
-            for (let key in currentMap) {
-                const item = currentMap[key];
-                item.changeType = 'removed';
-                item.pendingRemoval = true;
-                item.anomaly = true;
-                item.reasons.push('Não existe na nova tabela');
-                data.push(item);
-            }
-            
-            updateCounters();
-        }
-        
-        function updateCounters() {
-            document.getElementById('anomalyCount').textContent = data.filter(x => x.anomaly && !x.isEmpty).length;
-            document.getElementById('emptyCount').textContent = data.filter(x => x.isEmpty).length;
-            document.getElementById('totalCount').textContent = data.length;
-            
-            if (operationMode === 'compare') {
-                document.getElementById('changedCount').textContent = data.filter(x => x.changeType === 'changed').length;
-                document.getElementById('newCount').textContent = data.filter(x => x.changeType === 'new').length;
-                document.getElementById('removedCount').textContent = data.filter(x => x.pendingRemoval).length;
-            }
-        }
-
-        // ========== RENDER ==========
-        function renderAnalysis() {
-            const tbody = document.getElementById('analysisBody');
-            tbody.innerHTML = '';
-            
-            populateAnalysisFilters();
-            
-            const sorted = [...data].sort((a, b) => {
-                const matA = String(a.material || ''), matB = String(b.material || '');
-                if (matA !== matB) return matA.localeCompare(matB);
-                if (a.mesh !== b.mesh) return parseFloat(a.mesh) - parseFloat(b.mesh);
-                if (a.wire !== b.wire) return parseFloat(a.wire) - parseFloat(b.wire);
-                return parseFloat(a.width) - parseFloat(b.width);
-            });
-            
-            let lastMat = null;
-            sorted.forEach((item, i) => {
-                const idx = data.indexOf(item);
-                
-                if (lastMat && lastMat !== item.material) {
-                    const sep = document.createElement('tr');
-                    sep.className = 'bg-orange-200 separator-row';
-                    sep.innerHTML = `<td colspan="13" class="p-2 text-center text-xs font-bold text-orange-800">── ${item.material} ──</td>`;
-                    tbody.appendChild(sep);
-                }
-                lastMat = item.material;
-                
-                const tr = document.createElement('tr');
-                tr.setAttribute('data-idx', idx);
-                
-                let bgClass = '';
-                if (item.isEmpty) bgClass = 'row-empty';
-                else if (item.isEdited) bgClass = 'row-changed';
-                else if (item.pendingRemoval) bgClass = 'bg-yellow-50';
-                else if (item.changeType === 'new') bgClass = 'bg-green-50';
-                else if (item.changeType === 'changed') bgClass = 'bg-blue-50';
-                else if (item.anomaly) bgClass = 'bg-red-50';
-                tr.className = bgClass;
-                
-                let inputClass = 'price-input w-20 p-1 border rounded text-center font-bold';
-                if (item.isEmpty) inputClass += ' empty';
-                else if (item.isEdited) inputClass += ' changed';
-                
-                const statusLabel = item.isEmpty ? '<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">Vazio</span>' :
-                                   item.isEdited ? '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs">Editado</span>' :
-                                   item.anomaly ? '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs">Revisar</span>' :
-                                   '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">OK</span>';
-                
-                const typeLabel = item.pendingRemoval ? '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs">P/ Remover</span>' :
-                                 item.changeType === 'changed' ? '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">Alterado</span>' :
-                                 item.changeType === 'new' ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Novo</span>' :
-                                 item.changeType === 'removed' ? '<span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs">Removido</span>' : '-';
-                
-                let variation = '-';
-                if (item.priceOld !== null && item.priceOld > 0) {
-                    const pct = ((item.price - item.priceOld) / item.priceOld) * 100;
-                    const cls = pct > 0 ? 'text-red-600' : 'text-green-600';
-                    variation = `<span class="${cls} font-medium">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%</span>`;
-                }
-                
-                let actionHtml = '';
-                if (item.pendingRemoval) {
-                    actionHtml = `<button onclick="confirmRemoval(${idx})" class="bg-red-500 text-white px-2 py-1 rounded text-xs mr-1">Remover</button><button onclick="keepItem(${idx})" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Manter</button>`;
-                } else if (item.isEdited) {
-                    actionHtml = `<button onclick="resetPrice(${idx})" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">Desfazer</button>`;
-                }
-                
-                tr.innerHTML = `
-                    <td class="p-2 border">${statusLabel}</td>
-                    <td class="p-2 border">${typeLabel}</td>
-                    <td class="p-2 border font-mono text-xs">${item.code}</td>
-                    <td class="p-2 border font-bold text-orange-700">${item.material}</td>
-                    <td class="p-2 border text-center">${item.mesh}</td>
-                    <td class="p-2 border text-center">${item.wire}</td>
-                    <td class="p-2 border text-center">${item.width}</td>
-                    <td class="p-2 border text-center text-gray-500">${item.priceOld !== null ? '$' + fmt(item.priceOld) : '-'}</td>
-                    <td class="p-2 border text-center ${item.anomaly && !item.isEdited ? 'text-red-600 font-bold' : ''}">${item.originalPrice > 0 ? '$' + fmt(item.originalPrice) : '-'}</td>
-                    <td class="p-2 border text-center">${variation}</td>
-                    <td class="p-2 border text-center bg-yellow-50"><input type="number" step="0.01" value="${item.price || ''}" onchange="updatePrice(${idx}, this.value)" class="${inputClass}" placeholder="0,00"></td>
-                    <td class="p-2 border text-xs text-red-600">${item.reasons.join('; ')}</td>
-                    <td class="p-2 border text-center">${actionHtml}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            updateCounters();
-            applyAnalysisFilters();
-        }
-        
-        function populateAnalysisFilters() {
-            const mats = [...new Set(data.map(x => x.material))].sort();
-            const meshes = [...new Set(data.map(x => x.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
-            const wires = [...new Set(data.map(x => x.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
-            const widths = [...new Set(data.map(x => x.width))].sort((a, b) => parseFloat(a) - parseFloat(b));
-            
-            const fillSel = (id, opts, label) => {
-                const sel = document.getElementById(id);
-                sel.innerHTML = `<option value="">${label}</option>` + opts.map(o => `<option value="${o}">${o}</option>`).join('');
-            };
-            
-            fillSel('aFilterMaterial', mats, 'Todos Materiais');
-            fillSel('aFilterMesh', meshes, 'Todas Malhas');
-            fillSel('aFilterWire', wires, 'Todos Fios');
-            fillSel('aFilterWidth', widths, 'Todas Larguras');
-        }
-        
-        function applyAnalysisFilters() {
-            const mat = document.getElementById('aFilterMaterial').value;
-            const mesh = document.getElementById('aFilterMesh').value;
-            const wire = document.getElementById('aFilterWire').value;
-            const width = document.getElementById('aFilterWidth').value;
-            const status = document.getElementById('aFilterStatus').value;
-            
-            let visible = 0, problems = 0;
-            
-            document.querySelectorAll('#analysisBody tr').forEach(row => {
-                if (row.classList.contains('separator-row')) {
-                    row.style.display = 'none';
-                    return;
-                }
-                
-                const idx = parseInt(row.getAttribute('data-idx'));
-                if (isNaN(idx)) return;
-                const item = data[idx];
-                
-                let show = true;
-                if (mat && item.material !== mat) show = false;
-                if (mesh && item.mesh !== mesh) show = false;
-                if (wire && item.wire !== wire) show = false;
-                if (width && item.width !== width) show = false;
-                
-                if (status === 'revisar' && (!item.anomaly || item.isEmpty)) show = false;
-                if (status === 'vazio' && !item.isEmpty) show = false;
-                if (status === 'alterado' && item.changeType !== 'changed') show = false;
-                if (status === 'novo' && item.changeType !== 'new') show = false;
-                if (status === 'removido' && !item.pendingRemoval) show = false;
-                if (status === 'editado' && !item.isEdited) show = false;
-                if (status === 'ok' && (item.anomaly || item.isEmpty || item.isEdited)) show = false;
-                
-                row.style.display = show ? '' : 'none';
-                if (show) {
-                    visible++;
-                    if (item.anomaly || item.isEmpty) problems++;
-                }
-            });
-            
-            document.getElementById('filteredCount').textContent = `Exibindo: ${visible} itens (${problems} p/ revisar)`;
-        }
-        
-        function clearAnalysisFilters() {
-            document.getElementById('aFilterMaterial').value = '';
-            document.getElementById('aFilterMesh').value = '';
-            document.getElementById('aFilterWire').value = '';
-            document.getElementById('aFilterWidth').value = '';
-            document.getElementById('aFilterStatus').value = '';
-            applyAnalysisFilters();
-        }
-        
-        function updatePrice(idx, value) {
-            const item = data[idx];
-            const newPrice = parseFloat(value) || 0;
-            item.price = newPrice;
-            item.isEdited = newPrice !== item.originalPrice;
-            item.isEmpty = newPrice === 0;
-            saveToCache();
-            
-            const row = document.querySelector(`tr[data-idx="${idx}"]`);
-            if (row) {
-                row.className = item.isEmpty ? 'row-empty' : item.isEdited ? 'row-changed' : item.anomaly ? 'bg-red-50' : '';
-            }
-            
-            updateCounters();
-            applyAnalysisFilters();
-        }
-        
-        function resetPrice(idx) {
-            const item = data[idx];
-            item.price = item.originalPrice;
-            item.isEdited = false;
-            item.isEmpty = item.price === 0;
-            saveToCache();
-            renderAnalysis();
-        }
-        
-        function confirmRemoval(idx) {
-            data[idx].pendingRemoval = false;
-            data[idx].changeType = 'removed';
-            data[idx].anomaly = false;
-            data[idx].reasons = ['Remoção aprovada'];
-            saveToCache();
-            renderAnalysis();
-        }
-        
-        function keepItem(idx) {
-            data[idx].pendingRemoval = false;
-            data[idx].changeType = null;
-            data[idx].anomaly = false;
-            data[idx].reasons = ['Mantido'];
-            saveToCache();
-            renderAnalysis();
-        }
-
-        // ========== EXPORTAR COMPARATIVO ==========
-        function exportComparative() {
-            const rows = [['CÓDIGO', 'MATERIAL', 'MALHA', 'FIO', 'LARGURA', '$/m² ANTERIOR', '$/m² NOVO', 'VARIAÇÃO %', 'STATUS', 'OBSERVAÇÃO']];
-            
-            data.forEach(item => {
-                let status = 'OK';
-                if (item.changeType === 'changed') status = 'ALTERADO';
-                if (item.changeType === 'new') status = 'NOVO';
-                if (item.pendingRemoval) status = 'P/ REMOVER';
-                if (item.isEmpty) status = 'VAZIO';
-                if (item.isEdited) status = 'EDITADO';
-                
-                let variation = '-';
-                if (item.priceOld && item.priceOld > 0) {
-                    variation = (((item.price - item.priceOld) / item.priceOld) * 100).toFixed(2) + '%';
-                }
-                
-                rows.push([item.code, item.material, item.mesh, item.wire, item.width, item.priceOld || '-', item.price, variation, status, item.reasons.join('; ')]);
-            });
-            
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-            XLSX.utils.book_append_sheet(wb, ws, 'Comparativo');
-            XLSX.writeFile(wb, 'comparativo_precos.xlsx');
-        }
-
-        // ========== RELATÓRIO FINAL ==========
-        function generateReport() {
-            const finalData = data.filter(x => x.changeType !== 'removed');
-            
-            const tbody = document.getElementById('reportBody');
-            tbody.innerHTML = '';
-            document.getElementById('reportDate').textContent = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-            
-            const C = getCommonFactor();
-            const MCRT = calcParams.markupCorte, MROL = calcParams.markupRolo;
-            const D18 = calcParams.div18, D12 = calcParams.div12, D07 = calcParams.div07, DCT = calcParams.divCT;
-            
-            finalData.sort((a, b) => {
-                const matA = String(a.material || ''), matB = String(b.material || '');
-                if (matA !== matB) return matA.localeCompare(matB);
-                return parseFloat(a.mesh) - parseFloat(b.mesh);
-            });
-            
-            const mats = [], meshes = [], wires = [], widths = [];
-            
-            finalData.forEach(item => {
-                const b = item.price || 0;
-                const nCrt = C * MCRT * b;
-                const nRol = C * MROL * b;
-                
-                if (!mats.includes(item.material)) mats.push(item.material);
-                if (!meshes.includes(item.mesh)) meshes.push(item.mesh);
-                if (!wires.includes(item.wire)) wires.push(item.wire);
-                if (!widths.includes(item.width)) widths.push(item.width);
-                
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-orange-50';
-                tr.innerHTML = `
-                    <td class="p-1 border text-xs">${item.code}</td>
-                    <td class="p-1 border text-xs font-bold">${item.material}</td>
-                    <td class="p-1 border text-xs text-center">${item.mesh}</td>
-                    <td class="p-1 border text-xs text-center">${item.wire}</td>
-                    <td class="p-1 border text-xs text-center">${item.width}</td>
-                    <td class="p-1 border text-xs text-right bg-gray-100 hide-for-vendors">${fmt(b)}</td>
-                    <td class="p-1 border text-xs text-right">${fmt(nCrt / D18)}</td>
-                    <td class="p-1 border text-xs text-right">${fmt(nRol / D18)}</td>
-                    <td class="p-1 border text-xs text-right">${fmt(nCrt / D12)}</td>
-                    <td class="p-1 border text-xs text-right">${fmt(nRol / D12)}</td>
-                    <td class="p-1 border text-xs text-right">${fmt(nCrt / D07)}</td>
-                    <td class="p-1 border text-xs text-right">${fmt(nRol / D07)}</td>
-                    <td class="p-1 border text-xs text-right hide-for-vendors">${fmt(nCrt / DCT)}</td>
-                    <td class="p-1 border text-xs text-right hide-for-vendors">${fmt(nRol / DCT)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            // Preencher filtros
-            const fillSel = (id, opts) => {
-                const sel = document.getElementById(id);
-                sel.innerHTML = '<option value="">Todos</option>' + opts.map(o => `<option value="${o}">${o}</option>`).join('');
-            };
-            
-            fillSel('fMaterial', mats.sort());
-            fillSel('fMesh', meshes.sort((a, b) => parseFloat(a) - parseFloat(b)));
-            fillSel('fWire', wires.sort((a, b) => parseFloat(a) - parseFloat(b)));
-            fillSel('fWidth', widths.sort((a, b) => parseFloat(a) - parseFloat(b)));
-            
-            data = finalData;
-            showStep('report');
-        }
-        
-        function applyFilters() {
-            const code = document.getElementById('fCode').value.toUpperCase();
-            const mat = document.getElementById('fMaterial').value;
-            const mesh = document.getElementById('fMesh').value;
-            const wire = document.getElementById('fWire').value;
-            const width = document.getElementById('fWidth').value;
-            
-            document.querySelectorAll('#reportBody tr').forEach(row => {
-                const cells = row.cells;
-                let show = true;
-                if (code && !cells[0].textContent.toUpperCase().includes(code)) show = false;
-                if (mat && cells[1].textContent !== mat) show = false;
-                if (mesh && cells[2].textContent !== mesh) show = false;
-                if (wire && cells[3].textContent !== wire) show = false;
-                if (width && cells[4].textContent !== width) show = false;
-                row.style.display = show ? '' : 'none';
-            });
-        }
-        
-        function clearFilters() {
-            document.getElementById('fCode').value = '';
-            document.getElementById('fMaterial').value = '';
-            document.getElementById('fMesh').value = '';
-            document.getElementById('fWire').value = '';
-            document.getElementById('fWidth').value = '';
-            applyFilters();
-        }
-        
-        function exportExcel() {
-            const C = getCommonFactor();
-            const MCRT = calcParams.markupCorte, MROL = calcParams.markupRolo;
-            const D18 = calcParams.div18, D12 = calcParams.div12, D07 = calcParams.div07, DCT = calcParams.divCT;
-            
-            const rows = [['CÓDIGO', 'MATERIAL', 'MALHA', 'FIO', 'LARGURA', '$/m²', '18% CRT', '18% ROL', '12% CRT', '12% ROL', '7% CRT', '7% ROL', 'CT CRT', 'CT ROL']];
-            
-            data.forEach(item => {
-                const b = item.price || 0;
-                const nCrt = C * MCRT * b;
-                const nRol = C * MROL * b;
-                rows.push([item.code, item.material, item.mesh, item.wire, item.width, b, nCrt / D18, nRol / D18, nCrt / D12, nRol / D12, nCrt / D07, nRol / D07, nCrt / DCT, nRol / DCT]);
-            });
-            
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-            XLSX.utils.book_append_sheet(wb, ws, 'Tabela');
-            XLSX.writeFile(wb, 'tabela_central_mesh.xlsx');
-        }
-
-        // ========== PUBLICAÇÃO ==========
-        function pubComplete() {
-            document.querySelector('nav').classList.add('hidden');
-            document.getElementById('adminButtons').classList.add('hidden');
-            document.getElementById('publicFooter').classList.remove('hidden');
-            document.getElementById('step-report').classList.remove('vendors-mode');
-        }
-        
-        function pubVendors() {
-            document.querySelector('nav').classList.add('hidden');
-            document.getElementById('adminButtons').classList.add('hidden');
-            document.getElementById('publicFooter').classList.remove('hidden');
-            document.getElementById('step-report').classList.add('vendors-mode');
-        }
-        
-        function copyCodeComplete() {
-            const html = document.getElementById('step-report').outerHTML;
-            const code = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"><\/script></head><body class="p-4">${html}<script>function applyFilters(){const c=document.getElementById('fCode').value.toUpperCase(),m=document.getElementById('fMaterial').value,h=document.getElementById('fMesh').value,w=document.getElementById('fWire').value,l=document.getElementById('fWidth').value;document.querySelectorAll('#reportBody tr').forEach(r=>{const x=r.cells;let s=true;if(c&&!x[0].textContent.toUpperCase().includes(c))s=false;if(m&&x[1].textContent!==m)s=false;if(h&&x[2].textContent!==h)s=false;if(w&&x[3].textContent!==w)s=false;if(l&&x[4].textContent!==l)s=false;r.style.display=s?'':'none'});}function clearFilters(){document.getElementById('fCode').value='';document.getElementById('fMaterial').value='';document.getElementById('fMesh').value='';document.getElementById('fWire').value='';document.getElementById('fWidth').value='';applyFilters();}function exportExcel(){const t=document.getElementById('reportTable');const wb=XLSX.utils.table_to_book(t);XLSX.writeFile(wb,'tabela.xlsx');}<\/script></body></html>`;
-            navigator.clipboard.writeText(code).then(() => alert('✅ Código completo copiado!'));
-        }
-        
-        function copyCodeVendors() {
-            const html = document.getElementById('step-report').outerHTML;
-            const code = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"><\/script><style>.hide-for-vendors{display:none!important}</style></head><body class="p-4">${html}<script>function applyFilters(){const c=document.getElementById('fCode').value.toUpperCase(),m=document.getElementById('fMaterial').value,h=document.getElementById('fMesh').value,w=document.getElementById('fWire').value,l=document.getElementById('fWidth').value;document.querySelectorAll('#reportBody tr').forEach(r=>{const x=r.cells;let s=true;if(c&&!x[0].textContent.toUpperCase().includes(c))s=false;if(m&&x[1].textContent!==m)s=false;if(h&&x[2].textContent!==h)s=false;if(w&&x[3].textContent!==w)s=false;if(l&&x[4].textContent!==l)s=false;r.style.display=s?'':'none'});}function clearFilters(){document.getElementById('fCode').value='';document.getElementById('fMaterial').value='';document.getElementById('fMesh').value='';document.getElementById('fWire').value='';document.getElementById('fWidth').value='';applyFilters();}function exportExcel(){const t=document.getElementById('reportTable');const wb=XLSX.utils.table_to_book(t);XLSX.writeFile(wb,'tabela.xlsx');}<\/script></body></html>`;
-            navigator.clipboard.writeText(code).then(() => alert('✅ Código vendedores copiado!'));
         }
     </script>
 </body>
