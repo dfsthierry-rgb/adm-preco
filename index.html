@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central Mesh - Gestor de Preços v7.00</title>
+    <title>Central Mesh - Gestor de Preços v7.7</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
@@ -85,14 +86,28 @@
             margin-bottom: 1.5rem;
         }
         
+        .table-modern {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
         .table-modern th {
             background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
             position: sticky;
             top: 0;
             z-index: 10;
         }
         
         .table-modern tbody tr:hover { background-color: rgba(30, 58, 95, 0.05); }
+        
+        /* Cores por Material */
+        .material-316 { background-color: rgba(139, 92, 246, 0.1); border-left: 3px solid #8b5cf6; }
+        .material-304 { background-color: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; }
+        .material-302 { background-color: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; }
+        .material-galv { background-color: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; }
+        .material-carb { background-color: rgba(107, 114, 128, 0.1); border-left: 3px solid #6b7280; }
+        .material-other { background-color: rgba(236, 72, 153, 0.1); border-left: 3px solid #ec4899; }
         
         .variation-up { color: #dc2626; font-weight: 600; }
         .variation-down { color: #059669; font-weight: 600; }
@@ -136,6 +151,27 @@
             border-radius: 4px;
             padding: 8px;
         }
+        
+        /* Tabela com scroll fixo */
+        .table-container {
+            max-height: 70vh;
+            overflow: auto;
+            position: relative;
+        }
+        
+        .table-container thead th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        }
+        
+        .filter-row {
+            position: sticky;
+            top: 36px;
+            z-index: 15;
+            background: #f1f5f9;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -177,7 +213,21 @@
                         Simulador
                     </button>
                     
-                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.00</div>
+                    <button onclick="goToHome()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        Início
+                    </button>
+                    
+                    <button onclick="showAppsScriptCode()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        Apps Script
+                    </button>
+                    
+                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.7</div>
                 </div>
             </div>
         </div>
@@ -189,445 +239,481 @@
     <!-- Container Principal -->
     <div class="container mx-auto px-6 py-8 max-w-7xl">
 
-        <!-- Configuração de URLs -->
+        <!-- Configuração de URLs (editar aqui) -->
         <script>
             const CLOUD_CONFIG = {
+                // Cole aqui a URL da planilha de ANÁLISES SIMPLES
                 URL_SIMPLE: 'https://script.google.com/macros/s/AKfycbycuH6_t7JkVhfSy0k8sqadVtUiJoLfaiROy0l8_3b7sEfveMFQwrzV-K_RoP8V8eSxSg/exec',
+                
+                // Cole aqui a URL da planilha de COMPARATIVOS
                 URL_COMPARE: 'https://script.google.com/macros/s/AKfycbwvhbLID6yWEQqnLkBWORUR7GNMQdkjhXs4vK4JQF-FPOImduOG5pOu9tIuRvPVevolcg/exec',
+                
+                // Nome padrão do usuário
                 DEFAULT_USER: 'Usuário'
             };
         </script>
 
-        <!-- Aviso de configuração -->
-        <div id="configWarning" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-6 mb-6 no-print">
-            <div class="flex items-start gap-4">
-                <div class="text-4xl">⚙️</div>
-                <div class="flex-1">
-                    <h3 class="font-bold text-amber-800 text-lg mb-2">Configure as URLs das Planilhas</h3>
-                    <p class="text-sm text-amber-700 mb-3">Para usar a sincronização com a nuvem, edite o arquivo <code class="bg-amber-200 px-2 py-0.5 rounded">index.html</code> e cole as URLs das suas planilhas Google Sheets na seção <code class="bg-amber-200 px-2 py-0.5 rounded">CLOUD_CONFIG</code>.</p>
-                    <button onclick="showAppsScriptCode()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                        📜 Ver Código do Apps Script
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Seção de Análises na Nuvem -->
-        <section id="cloudAnalyses" class="hidden mb-8 no-print">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Análises Simples -->
-                <div class="glass-card rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-xl">📊</div>
-                        <div>
-                            <h3 class="font-bold text-slate-800">Análises Simples</h3>
-                            <p class="text-xs text-slate-500">Tabelas salvas na nuvem</p>
-                        </div>
-                        <button onclick="loadCloudAnalyses('simple')" class="ml-auto text-blue-600 hover:text-blue-800 text-sm font-medium">🔄 Atualizar</button>
-                    </div>
-                    <div id="simpleAnalysesList" class="space-y-2 max-h-48 overflow-y-auto">
-                        <p class="text-sm text-slate-400 text-center py-4">Carregando...</p>
-                    </div>
-                </div>
-                
-                <!-- Comparativos -->
-                <div class="glass-card rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white text-xl">🔄</div>
-                        <div>
-                            <h3 class="font-bold text-slate-800">Comparativos</h3>
-                            <p class="text-xs text-slate-500">Comparações salvas na nuvem</p>
-                        </div>
-                        <button onclick="loadCloudAnalyses('compare')" class="ml-auto text-emerald-600 hover:text-emerald-800 text-sm font-medium">🔄 Atualizar</button>
-                    </div>
-                    <div id="compareAnalysesList" class="space-y-2 max-h-48 overflow-y-auto">
-                        <p class="text-sm text-slate-400 text-center py-4">Carregando...</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Cache Local -->
-        <section id="localCacheSection" class="hidden mb-8 no-print">
-            <div class="glass-card rounded-2xl p-6 shadow-lg">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-lg">💾</div>
+        <!-- Tela Inicial -->
+        <section id="homeScreen" class="mb-8">
+            <!-- Aviso se URLs não configuradas -->
+            <div id="configWarning" class="hidden glass-card rounded-2xl p-6 mb-6 border-l-4 border-amber-500 no-print">
+                <div class="flex items-start gap-4">
+                    <div class="text-3xl">⚠️</div>
                     <div>
-                        <h3 class="font-bold text-slate-800">Cache Local</h3>
-                        <p class="text-xs text-slate-500">Análises salvas neste navegador</p>
+                        <h3 class="font-bold text-amber-800">URLs não configuradas</h3>
+                        <p class="text-sm text-amber-700 mt-1">
+                            Para usar a sincronização na nuvem:
+                        </p>
+                        <ol class="text-sm text-amber-700 mt-2 list-decimal list-inside space-y-1">
+                            <li>Clique no botão <strong>"Apps Script"</strong> no menu e copie o código</li>
+                            <li>Crie duas planilhas Google Sheets e adicione o código em cada uma</li>
+                            <li>Implante como Web App e copie as URLs</li>
+                            <li>Edite o arquivo <code class="bg-amber-100 px-1 rounded">index.html</code> e cole as URLs em <code class="bg-amber-100 px-1 rounded">CLOUD_CONFIG</code></li>
+                        </ol>
+                        <button onclick="showAppsScriptCode()" class="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                            📋 Ver Código do Apps Script
+                        </button>
                     </div>
                 </div>
-                <div id="localCacheList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Preenchido via JS -->
-                </div>
             </div>
-        </section>
 
-        <!-- Seleção de Modo -->
-        <section id="modeSelection" class="mb-8 no-print">
-            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Selecione o Modo de Análise</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                <button onclick="selectMode('simple')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-blue-400 transition-all group hover:shadow-xl">
+            <!-- Seleção de Modo -->
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">Bem-vindo ao Central Mesh</h2>
+                <p class="text-slate-500">Selecione o tipo de análise que deseja realizar</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <!-- Análise Simples -->
+                <div onclick="selectMode('simple')" class="glass-card rounded-2xl p-8 cursor-pointer border-2 border-transparent hover:border-blue-400 transition-all group hover:shadow-xl">
                     <div class="text-center">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">📊</div>
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
+                            📊
+                        </div>
                         <h3 class="text-xl font-bold text-slate-800 mb-2">Análise Simples</h3>
                         <p class="text-sm text-slate-500">Carregue UMA tabela e analise inconsistências de preços</p>
                     </div>
-                </button>
-                
-                <button onclick="selectMode('compare')" class="glass-card rounded-2xl p-8 border-2 border-transparent hover:border-emerald-400 transition-all group hover:shadow-xl">
+                </div>
+
+                <!-- Comparativo -->
+                <div onclick="selectMode('compare')" class="glass-card rounded-2xl p-8 cursor-pointer border-2 border-transparent hover:border-emerald-400 transition-all group hover:shadow-xl">
                     <div class="text-center">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">🔄</div>
-                        <h3 class="text-xl font-bold text-slate-800 mb-2">Comparativo de Tabelas</h3>
-                        <p class="text-sm text-slate-500">Compare tabela ATUAL com tabela NOVA e veja alterações</p>
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
+                            🔄
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Comparativo</h3>
+                        <p class="text-sm text-slate-500">Compare tabela ATUAL x NOVA e veja as alterações</p>
                     </div>
-                </button>
+                </div>
+
+                <!-- Simulador -->
+                <div onclick="openSimulator()" class="glass-card rounded-2xl p-8 cursor-pointer border-2 border-transparent hover:border-purple-400 transition-all group hover:shadow-xl">
+                    <div class="text-center">
+                        <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white text-4xl group-hover:scale-110 transition-transform">
+                            🧮
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Simulador</h3>
+                        <p class="text-sm text-slate-500">Calcule preços rapidamente a partir do $/m²</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache Local -->
+            <div id="localCacheSection" class="hidden mt-10">
+                <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    💾 Trabalhos Salvos Localmente
+                </h3>
+                <div id="localCacheList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+
+            <!-- Cache na Nuvem -->
+            <div id="cloudCacheSection" class="hidden mt-10">
+                <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    ☁️ Análises Salvas na Nuvem
+                </h3>
+                <div id="cloudCacheList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
         </section>
 
         <!-- Upload de Arquivos -->
-        <section id="uploadSection" class="hidden mb-8 no-print">
-            <div class="glass-card rounded-2xl p-8 shadow-lg">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-bold text-slate-800">📁 Importar Arquivos</h2>
-                    <button onclick="backToMode()" class="text-slate-500 hover:text-slate-700 text-sm font-medium">← Voltar</button>
+        <section id="uploadSection" class="hidden glass-card rounded-2xl p-8 mb-8 no-print">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    📁 <span id="uploadTitle">Importar Arquivo</span>
+                </h2>
+                <button onclick="goToHome()" class="text-slate-500 hover:text-slate-700 flex items-center gap-1 text-sm">
+                    ← Voltar
+                </button>
+            </div>
+
+            <!-- Upload Simples -->
+            <div id="simpleUpload" class="hidden">
+                <div class="border-2 border-dashed border-blue-300 rounded-2xl p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer" onclick="document.getElementById('fileSimple').click()">
+                    <input type="file" id="fileSimple" accept=".xlsx,.xls" class="hidden" onchange="handleFile(this, 'simple')">
+                    <div class="text-5xl mb-4">📄</div>
+                    <p id="fileSimpleName" class="text-lg font-medium text-slate-600">Clique ou arraste seu arquivo Excel aqui</p>
+                    <p class="text-sm text-slate-400 mt-2">.xlsx ou .xls</p>
                 </div>
-                
-                <div id="simpleUpload" class="hidden">
-                    <div class="border-2 border-dashed border-blue-300 rounded-2xl p-12 text-center bg-blue-50/50 hover:bg-blue-100/50 transition cursor-pointer" onclick="document.getElementById('fileSimple').click()">
-                        <input type="file" id="fileSimple" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'simple')">
-                        <div class="text-5xl mb-4">📄</div>
-                        <p id="fileSimpleName" class="text-lg font-medium text-slate-700">Clique para selecionar arquivo Excel</p>
-                        <p class="text-sm text-slate-400 mt-2">.xlsx ou .xls</p>
+            </div>
+
+            <!-- Upload Comparativo -->
+            <div id="compareUpload" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border-2 border-dashed border-blue-300 rounded-2xl p-8 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer" onclick="document.getElementById('fileCurrent').click()">
+                        <input type="file" id="fileCurrent" accept=".xlsx,.xls" class="hidden" onchange="handleFile(this, 'current')">
+                        <div class="text-4xl mb-3">📋</div>
+                        <p id="fileCurrentName" class="font-medium text-slate-600">Tabela ATUAL</p>
+                        <p class="text-xs text-slate-400 mt-1">Clique para selecionar</p>
+                    </div>
+                    <div class="border-2 border-dashed border-emerald-300 rounded-2xl p-8 text-center hover:border-emerald-500 hover:bg-emerald-50/50 transition-all cursor-pointer" onclick="document.getElementById('fileNew').click()">
+                        <input type="file" id="fileNew" accept=".xlsx,.xls" class="hidden" onchange="handleFile(this, 'new')">
+                        <div class="text-4xl mb-3">📄</div>
+                        <p id="fileNewName" class="font-medium text-slate-600">Tabela NOVA</p>
+                        <p class="text-xs text-slate-400 mt-1">Clique para selecionar</p>
                     </div>
                 </div>
-                
-                <div id="compareUpload" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="border-2 border-dashed border-blue-300 rounded-2xl p-8 text-center bg-blue-50/50 hover:bg-blue-100/50 transition cursor-pointer" onclick="document.getElementById('fileCurrent').click()">
-                            <input type="file" id="fileCurrent" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'current')">
-                            <div class="text-4xl mb-3">📋</div>
-                            <p id="fileCurrentName" class="font-medium text-slate-700">Tabela ATUAL</p>
-                            <p class="text-xs text-slate-400 mt-1">Base de preços atual</p>
-                        </div>
-                        <div class="border-2 border-dashed border-emerald-300 rounded-2xl p-8 text-center bg-emerald-50/50 hover:bg-emerald-100/50 transition cursor-pointer" onclick="document.getElementById('fileNew').click()">
-                            <input type="file" id="fileNew" accept=".xlsx,.xls" class="hidden" onchange="handleFileSelect(this, 'new')">
-                            <div class="text-4xl mb-3">📄</div>
-                            <p id="fileNewName" class="font-medium text-slate-700">Tabela NOVA</p>
-                            <p class="text-xs text-slate-400 mt-1">Com alterações</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-4 mt-6">
-                    <button onclick="processFiles()" class="btn-primary text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                        Analisar
-                    </button>
-                    <button onclick="downloadTemplate()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium transition">
-                        📥 Baixar Modelo
-                    </button>
-                </div>
+            </div>
+
+            <div class="mt-6 flex gap-4">
+                <button onclick="processFiles()" class="btn-primary text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2">
+                    🔍 Analisar
+                </button>
+                <button onclick="downloadTemplate()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl font-medium transition">
+                    📥 Baixar Modelo
+                </button>
             </div>
         </section>
 
-        <!-- Resumo Comparativo -->
-        <section id="compareSummary" class="hidden mb-8 no-print">
-            <div class="glass-card rounded-2xl p-6 shadow-lg">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">📊 Resumo do Comparativo</h3>
-                
-                <!-- Cards de Estatísticas -->
-                <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-                    <div class="stat-card bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
-                        <p class="text-3xl font-bold text-slate-800" id="statTotal">0</p>
-                        <p class="text-xs text-slate-500 font-medium">Total</p>
-                    </div>
-                    <div class="stat-card bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-4 text-center">
-                        <p class="text-3xl font-bold text-blue-700" id="statChanged">0</p>
-                        <p class="text-xs text-blue-600 font-medium">Alterados</p>
-                    </div>
-                    <div class="stat-card bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl p-4 text-center">
-                        <p class="text-3xl font-bold text-emerald-700" id="statNew">0</p>
-                        <p class="text-xs text-emerald-600 font-medium">Novos</p>
-                    </div>
-                    <div class="stat-card bg-gradient-to-br from-red-100 to-red-200 rounded-xl p-4 text-center">
-                        <p class="text-3xl font-bold text-red-700" id="statRemoved">0</p>
-                        <p class="text-xs text-red-600 font-medium">Removidos</p>
-                    </div>
-                    <div class="stat-card bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl p-4 text-center">
-                        <p class="text-3xl font-bold text-amber-700" id="statReview">0</p>
-                        <p class="text-xs text-amber-600 font-medium">P/ Revisar</p>
-                    </div>
-                    <div class="stat-card bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-4 text-center">
-                        <p class="text-3xl font-bold text-purple-700" id="statVariation">0%</p>
-                        <p class="text-xs text-purple-600 font-medium">Var. Média</p>
-                    </div>
+        <!-- Resumo do Comparativo -->
+        <section id="compareSummary" class="hidden glass-card rounded-2xl p-6 mb-8 no-print">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                📊 Resumo do Comparativo
+            </h3>
+
+            <!-- Cards de Estatísticas -->
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+                <div class="stat-card bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
+                    <p class="text-3xl font-bold text-slate-800" id="statTotal">0</p>
+                    <p class="text-xs text-slate-500 font-medium">Total</p>
                 </div>
-                
-                <!-- Resumo por Grupo (Material) -->
+                <div class="stat-card bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-4 text-center">
+                    <p class="text-3xl font-bold text-blue-700" id="statChanged">0</p>
+                    <p class="text-xs text-blue-600 font-medium">Alterados</p>
+                </div>
+                <div class="stat-card bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl p-4 text-center">
+                    <p class="text-3xl font-bold text-emerald-700" id="statNew">0</p>
+                    <p class="text-xs text-emerald-600 font-medium">Novos</p>
+                </div>
+                <div class="stat-card bg-gradient-to-br from-red-100 to-red-200 rounded-xl p-4 text-center">
+                    <p class="text-3xl font-bold text-red-700" id="statRemoved">0</p>
+                    <p class="text-xs text-red-600 font-medium">Removidos</p>
+                </div>
+                <div class="stat-card bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl p-4 text-center">
+                    <p class="text-3xl font-bold text-amber-700" id="statReview">0</p>
+                    <p class="text-xs text-amber-600 font-medium">P/ Revisar</p>
+                </div>
+                <div class="stat-card bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-4 text-center">
+                    <p class="text-3xl font-bold text-purple-700" id="statVariation">0%</p>
+                    <p class="text-xs text-purple-600 font-medium">Variação Média</p>
+                </div>
+            </div>
+
+            <!-- Resumos por Grupo -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-slate-50 rounded-xl p-4">
-                    <h4 class="font-bold text-slate-700 mb-3">📦 Variação por Material</h4>
-                    <div id="groupSummary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <!-- Preenchido via JS -->
-                    </div>
+                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        📦 Variação por Material
+                    </h4>
+                    <div id="materialSummary" class="space-y-2 max-h-64 overflow-y-auto"></div>
                 </div>
-                
-                <!-- Resumo por Malha -->
-                <div class="bg-slate-50 rounded-xl p-4 mt-4">
-                    <h4 class="font-bold text-slate-700 mb-3">🔢 Variação por Malha</h4>
-                    <div id="meshSummary" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        <!-- Preenchido via JS -->
-                    </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h4 class="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        🔢 Variação por Malha
+                    </h4>
+                    <div id="meshSummary" class="space-y-2 max-h-64 overflow-y-auto"></div>
                 </div>
             </div>
         </section>
 
-        <!-- Tela de Análise -->
-        <section id="analysisSection" class="hidden mb-8 no-print">
-            <div class="glass-card rounded-2xl shadow-lg overflow-hidden">
-                <div class="p-6 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                    <div class="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                            <h2 class="text-xl font-bold text-slate-800">📊 Análise de Preços</h2>
-                            <p class="text-sm text-slate-500 mt-1" id="analysisStats"></p>
-                        </div>
-                        <div class="flex gap-3 flex-wrap">
-                            <!-- Botões de Salvar -->
-                            <button onclick="saveToLocal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
-                                💾 Salvar Local
-                            </button>
-                            <button onclick="saveToCloud()" id="btnSaveCloud" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
-                                ☁️ Salvar Nuvem
-                            </button>
-                            <button onclick="approveAllVisible()" class="btn-success text-white px-4 py-2 rounded-xl text-sm font-medium">
-                                ✓ Aprovar Filtrados
-                            </button>
-                            <button onclick="generateReport()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium">
-                                📄 Gerar Relatório
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Filtros -->
-                    <div class="mt-4 flex flex-wrap gap-3 items-center">
-                        <span class="text-xs font-bold text-slate-500">FILTROS:</span>
-                        <select id="filterMaterial" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[150px]">
-                            <option value="">Todos Materiais</option>
-                        </select>
-                        <select id="filterMesh" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[100px]">
-                            <option value="">Todas Malhas</option>
-                        </select>
-                        <select id="filterWire" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[100px]">
-                            <option value="">Todos Fios</option>
-                        </select>
-                        <select id="filterStatus" onchange="applyFilters()" class="filter-select text-xs p-2 rounded-lg bg-white min-w-[120px]">
-                            <option value="">Todos Status</option>
-                            <option value="review">🔴 Revisar</option>
-                            <option value="changed">🔵 Alterados</option>
-                            <option value="new">🟢 Novos</option>
-                            <option value="removed">⚪ Removidos</option>
-                            <option value="ok">✅ OK</option>
-                        </select>
-                        <button onclick="clearFilters()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
-                        <span id="filteredInfo" class="text-xs text-slate-400 ml-auto"></span>
-                    </div>
+        <!-- Análise de Dados -->
+        <section id="analysisSection" class="hidden glass-card rounded-2xl p-6 mb-8 no-print">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">📋 Análise de Preços</h2>
+                    <p class="text-sm text-slate-500" id="analysisSubtitle">Revise e ajuste os preços</p>
                 </div>
-                
-                <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
-                    <table class="w-full text-sm table-modern">
-                        <thead>
-                            <tr class="text-white text-xs">
-                                <th class="p-3 text-left font-medium">Status</th>
-                                <th class="p-3 text-left font-medium">Código</th>
-                                <th class="p-3 text-left font-medium">Material</th>
-                                <th class="p-3 text-center font-medium">Malha</th>
-                                <th class="p-3 text-center font-medium">Fio</th>
-                                <th class="p-3 text-center font-medium">Largura</th>
-                                <th class="p-3 text-center font-medium">$/m² Anterior</th>
-                                <th class="p-3 text-center font-medium">$/m² Atual</th>
-                                <th class="p-3 text-center font-medium">Variação</th>
-                                <th class="p-3 text-center font-medium bg-amber-600">$/m² Editar</th>
-                                <th class="p-3 text-left font-medium">Motivo</th>
-                                <th class="p-3 text-center font-medium">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="analysisTableBody" class="divide-y divide-slate-200"></tbody>
-                    </table>
+                <div class="flex gap-2">
+                    <button onclick="saveToLocal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                        💾 Salvar Local
+                    </button>
+                    <button onclick="saveToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                        ☁️ Salvar Nuvem
+                    </button>
+                    <button onclick="approveAllVisible()" class="btn-success text-white px-4 py-2 rounded-xl text-sm font-medium">
+                        ✅ Aprovar Filtrados
+                    </button>
+                    <button onclick="generateReport()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium">
+                        📄 Gerar Relatório
+                    </button>
                 </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="flex flex-wrap gap-3 mb-4 items-center bg-slate-50 rounded-xl p-3">
+                <span class="text-xs font-bold text-slate-500">FILTROS:</span>
+                <select id="filterMaterial" onchange="applyFilters()" class="filter-select text-sm p-2 rounded-lg bg-white">
+                    <option value="">Todos Materiais</option>
+                </select>
+                <select id="filterMesh" onchange="applyFilters()" class="filter-select text-sm p-2 rounded-lg bg-white">
+                    <option value="">Todas Malhas</option>
+                </select>
+                <select id="filterWire" onchange="applyFilters()" class="filter-select text-sm p-2 rounded-lg bg-white">
+                    <option value="">Todos Fios</option>
+                </select>
+                <select id="filterStatus" onchange="applyFilters()" class="filter-select text-sm p-2 rounded-lg bg-white">
+                    <option value="">Todos Status</option>
+                    <option value="review">🔴 Revisar</option>
+                    <option value="changed">🔵 Alterados</option>
+                    <option value="new">🟢 Novos</option>
+                    <option value="removed">⚪ Removidos</option>
+                    <option value="ok">✅ OK</option>
+                </select>
+                <button onclick="clearFilters()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
+                <span id="filterCount" class="ml-auto text-sm text-slate-500"></span>
+            </div>
+
+            <!-- Tabela de Análise -->
+            <div class="table-container border rounded-xl">
+                <table class="w-full text-sm table-modern">
+                    <thead>
+                        <tr class="text-white text-xs">
+                            <th class="p-3 text-left">Status</th>
+                            <th class="p-3 text-left">Código</th>
+                            <th class="p-3 text-left">Material</th>
+                            <th class="p-3 text-center">Malha</th>
+                            <th class="p-3 text-center">Fio</th>
+                            <th class="p-3 text-center">Largura</th>
+                            <th class="p-3 text-right">$/m² Anterior</th>
+                            <th class="p-3 text-right">$/m² Atual</th>
+                            <th class="p-3 text-center">Variação</th>
+                            <th class="p-3 text-right bg-amber-600">$/m² Editar</th>
+                            <th class="p-3 text-left">Motivo</th>
+                            <th class="p-3 text-center">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analysisTableBody" class="bg-white"></tbody>
+                </table>
             </div>
         </section>
 
-        <!-- Relatório Final / Publicação -->
+        <!-- Relatório Final -->
         <section id="reportSection" class="hidden">
-            <!-- Cabeçalho da Publicação -->
+            <!-- Header da Publicação -->
             <div class="publication-header text-center">
-                <h1 class="text-3xl font-bold mb-2">TABELA OFICIAL DE PREÇOS</h1>
-                <h2 class="text-xl opacity-90">Central Mesh</h2>
+                <h1 class="text-3xl font-bold">TABELA DE PREÇOS</h1>
+                <p class="text-xl opacity-90 mt-2">Central Mesh</p>
                 <p class="text-sm opacity-70 mt-2" id="reportDate"></p>
-                <p class="text-xs opacity-50 mt-1" id="reportVersion">Versão 7.00</p>
             </div>
-            
-            <!-- Botões de Ação no Topo -->
-            <div class="mb-6 flex flex-wrap gap-4 justify-center no-print" id="reportActionsTop">
-                <button onclick="saveToLocal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+
+            <!-- Botões de Ação -->
+            <div class="flex flex-wrap gap-4 mb-6 justify-center no-print">
+                <button onclick="goBackToAnalysis()" class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                    ← Voltar para Análise
+                </button>
+                <button onclick="saveToLocal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
                     💾 Salvar Local
                 </button>
-                <button onclick="saveToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition">
+                <button onclick="saveToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
                     ☁️ Salvar Nuvem
                 </button>
-                <button onclick="exportToPDF()" class="btn-danger text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2">
-                    📄 Exportar PDF
+<!-- Botão PDF removido -->
+                <button onclick="publishComplete()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium">
+                    🌐 Publicação Completa
                 </button>
-                <button onclick="backToAnalysis()" class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-medium">
-                    ← Voltar à Análise
+                <button onclick="publishVendors()" class="btn-success text-white px-4 py-2 rounded-xl text-sm font-medium">
+                    👔 Publicação Vendedores
+                </button>
+                <button onclick="copyEmbedCode()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                    📋 Copiar Código HTML
+                </button>
+                <button onclick="goToHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition">
+                    🏠 Início
                 </button>
             </div>
-            
+
             <!-- Filtros da Publicação -->
-            <div class="bg-white rounded-xl p-4 mb-6 shadow-lg no-print">
+            <div class="bg-white rounded-xl p-4 mb-4 shadow no-print">
                 <div class="flex flex-wrap gap-4 items-center">
                     <span class="text-sm font-bold text-slate-600">🔍 Filtrar:</span>
-                    <input type="text" id="pubFilterCode" onkeyup="applyPubFilters()" placeholder="Código..." class="filter-select text-sm p-2 rounded-lg w-32">
-                    <select id="pubFilterMaterial" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg min-w-[150px]">
+                    <input type="text" id="pubFilterCode" onkeyup="applyPubFilters()" placeholder="Buscar código..." class="filter-select text-sm p-2 rounded-lg w-40">
+                    <select id="pubFilterMaterial" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg">
                         <option value="">Todos Materiais</option>
                     </select>
-                    <select id="pubFilterMesh" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg min-w-[100px]">
+                    <select id="pubFilterMesh" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg">
                         <option value="">Todas Malhas</option>
                     </select>
-                    <select id="pubFilterWire" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg min-w-[100px]">
+                    <select id="pubFilterWire" onchange="applyPubFilters()" class="filter-select text-sm p-2 rounded-lg">
                         <option value="">Todos Fios</option>
                     </select>
-                    <button onclick="clearPubFilters()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
-                    <span id="pubFilteredInfo" class="text-xs text-slate-400 ml-auto"></span>
+                    <button onclick="clearPubFilters()" class="text-sm text-blue-600 hover:text-blue-800">Limpar</button>
+                    <span id="pubFilterCount" class="ml-auto text-sm text-slate-500"></span>
                 </div>
             </div>
-            
+
             <!-- Tabela do Relatório -->
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs table-modern" id="reportTable">
+                <div class="table-container">
+                    <table class="w-full text-sm table-modern" id="reportTable">
                         <thead>
-                            <tr class="text-white text-[10px] uppercase">
-                                <th class="p-2 text-left font-medium">Código</th>
-                                <th class="p-2 text-left font-medium">Material</th>
-                                <th class="p-2 text-center font-medium">Malha</th>
-                                <th class="p-2 text-center font-medium">Fio</th>
-                                <th class="p-2 text-center font-medium">Larg.</th>
-                                <th class="p-2 text-right font-medium hide-for-vendors">$/m²</th>
-                                <th class="p-2 text-right font-medium">18% CRT</th>
-                                <th class="p-2 text-right font-medium">18% ROL</th>
-                                <th class="p-2 text-right font-medium">12% CRT</th>
-                                <th class="p-2 text-right font-medium">12% ROL</th>
-                                <th class="p-2 text-right font-medium">7% CRT</th>
-                                <th class="p-2 text-right font-medium">7% ROL</th>
-                                <th class="p-2 text-right font-medium hide-for-vendors">CT CRT</th>
-                                <th class="p-2 text-right font-medium hide-for-vendors">CT ROL</th>
+                            <tr class="text-white text-xs">
+                                <th class="p-3 text-left">Código</th>
+                                <th class="p-3 text-left">Material</th>
+                                <th class="p-3 text-center">Malha</th>
+                                <th class="p-3 text-center">Fio</th>
+                                <th class="p-3 text-center">Largura</th>
+                                <th class="p-3 text-right col-base">$/m²</th>
+                                <th class="p-3 text-right">18% CRT</th>
+                                <th class="p-3 text-right">18% ROL</th>
+                                <th class="p-3 text-right">12% CRT</th>
+                                <th class="p-3 text-right">12% ROL</th>
+                                <th class="p-3 text-right">7% CRT</th>
+                                <th class="p-3 text-right">7% ROL</th>
+                                <th class="p-3 text-right col-ct">CT CRT</th>
+                                <th class="p-3 text-right col-ct">CT ROL</th>
                             </tr>
                         </thead>
-                        <tbody id="reportTableBody" class="divide-y divide-slate-200"></tbody>
+                        <tbody id="reportTableBody" class="bg-white"></tbody>
                     </table>
                 </div>
             </div>
-            
-            <!-- Botões de Publicação -->
-            <div class="mt-8 flex flex-wrap justify-center gap-4 no-print" id="reportActions">
-                <button onclick="publishComplete()" class="btn-primary text-white px-6 py-3 rounded-xl font-bold">
-                    🌐 Publicação Completa
-                </button>
-                <button onclick="publishVendors()" class="btn-success text-white px-6 py-3 rounded-xl font-bold">
-                    👔 Publicação Vendedores
-                </button>
-                <button onclick="copyEmbedCode('complete')" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition">
-                    📋 Copiar Código Completo
-                </button>
-                <button onclick="copyEmbedCode('vendors')" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl font-medium transition">
-                    📋 Copiar Código Vendedores
-                </button>
-            </div>
-            
-            <!-- Rodapé da Publicação -->
-            <div id="publicFooter" class="hidden mt-8 pt-6 border-t border-slate-200 text-center text-slate-400 text-xs">
-                <p>Central Mesh - Tabela Oficial de Preços</p>
-                <p class="mt-1">Publicado em: <span id="footerDate"></span> | Versão 7.00</p>
-                <p class="mt-1 text-slate-300">Valores sujeitos a alteração sem aviso prévio</p>
+
+            <!-- Rodapé -->
+            <div class="mt-6 text-center text-slate-400 text-sm">
+                <p>Central Mesh - Tabela de Preços</p>
+                <p id="reportFooterDate" class="mt-1"></p>
             </div>
         </section>
     </div>
 
-    <!-- Modal Simulador -->
+    <!-- Modal: Simulador -->
     <div id="simulatorModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex items-center justify-between">
                 <h3 class="text-xl font-bold text-slate-800">🧮 Simulador de Preços</h3>
                 <button onclick="closeSimulator()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
             </div>
             <div class="p-6">
                 <div class="mb-6">
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Digite o valor $/m²:</label>
-                    <input type="number" id="simPrice" placeholder="Ex: 100.00" class="w-full p-4 text-2xl font-bold text-center border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200" oninput="calculateSimulation()">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Digite o valor $/m²:</label>
+                    <input type="number" id="simPrice" step="0.01" placeholder="Ex: 100.00" class="w-full p-4 text-2xl font-bold text-center border-2 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200" oninput="calculateSimulation()">
                 </div>
-                <div id="simResults" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <!-- Preenchido via JS -->
+                <div id="simResults" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Código Apps Script -->
+    <div id="appsScriptModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-t-2xl">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Código do Google Apps Script
+                </h3>
+                <button onclick="closeAppsScriptModal()" class="text-white/70 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                    <h4 class="font-bold text-blue-800 mb-2">📋 Instruções de Configuração:</h4>
+                    <ol class="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                        <li>Crie <strong>DUAS planilhas</strong> no Google Sheets (uma para Análises Simples, outra para Comparativos)</li>
+                        <li>Em cada planilha, vá em <strong>Extensões → Apps Script</strong></li>
+                        <li>Apague todo o código existente e <strong>cole o código abaixo</strong></li>
+                        <li>Salve (Ctrl+S) e clique em <strong>Implantar → Nova implantação</strong></li>
+                        <li>Selecione <strong>App da Web</strong></li>
+                        <li>Configure: Executar como <strong>"Eu"</strong> e Acesso <strong>"Qualquer pessoa"</strong></li>
+                        <li>Clique em <strong>Implantar</strong> e copie a URL gerada</li>
+                        <li>Cole a URL no arquivo index.html na seção <code class="bg-blue-200 px-1 rounded">CLOUD_CONFIG</code></li>
+                    </ol>
+                </div>
+                
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-bold text-slate-600">Código para copiar:</span>
+                    <button onclick="copyAppsScriptCode()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copiar Código
+                    </button>
+                </div>
+                
+                <textarea id="appsScriptCode" readonly class="w-full h-96 p-4 bg-slate-900 text-green-400 font-mono text-xs rounded-xl border-0 focus:ring-2 focus:ring-blue-500"></textarea>
+                
+                <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p class="text-sm text-amber-800">
+                        <strong>💡 Dica:</strong> Use o <strong>MESMO código</strong> para ambas as planilhas. 
+                        Cada planilha terá sua própria aba "Dados" e "Config" criadas automaticamente.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Parâmetros -->
+    <!-- Modal: Parâmetros de Cálculo -->
     <div id="calcConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex items-center justify-between">
                 <h3 class="text-xl font-bold text-slate-800">⚙️ Parâmetros de Cálculo</h3>
                 <button onclick="closeCalcConfig()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Fator 1</label>
-                        <input type="number" id="paramF1" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold" value="2">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Fator 1</label>
+                        <input type="number" id="paramF1" value="2" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Fator 2</label>
-                        <input type="number" id="paramF2" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold" value="5.60">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Fator 2</label>
+                        <input type="number" id="paramF2" value="5.60" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Fator 3</label>
-                        <input type="number" id="paramF3" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold" value="0.82">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Fator 3</label>
+                        <input type="number" id="paramF3" value="0.82" step="0.01" class="w-full p-3 border rounded-xl text-center font-bold">
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-amber-50 p-4 rounded-xl">
-                        <label class="block text-xs font-bold text-amber-700 mb-2">Markup Corte</label>
-                        <input type="number" id="paramMarkupCorte" step="0.01" class="w-full p-3 border border-amber-300 rounded-xl text-center font-bold" value="1.35">
+                        <label class="block text-xs font-medium text-amber-700 mb-1">Markup Corte</label>
+                        <input type="number" id="paramMarkupCorte" value="1.35" step="0.01" class="w-full p-3 border border-amber-300 rounded-xl text-center font-bold">
                     </div>
                     <div class="bg-blue-50 p-4 rounded-xl">
-                        <label class="block text-xs font-bold text-blue-700 mb-2">Markup Rolo</label>
-                        <input type="number" id="paramMarkupRolo" step="0.01" class="w-full p-3 border border-blue-300 rounded-xl text-center font-bold" value="1.30">
+                        <label class="block text-xs font-medium text-blue-700 mb-1">Markup Rolo</label>
+                        <input type="number" id="paramMarkupRolo" value="1.30" step="0.01" class="w-full p-3 border border-blue-300 rounded-xl text-center font-bold">
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-4 gap-4 mb-6">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor 18%</label>
-                        <input type="number" id="paramDiv18" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.7235">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Divisor 18%</label>
+                        <input type="number" id="paramDiv18" value="0.7235" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor 12%</label>
-                        <input type="number" id="paramDiv12" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.7835">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Divisor 12%</label>
+                        <input type="number" id="paramDiv12" value="0.7835" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor 7%</label>
-                        <input type="number" id="paramDiv07" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.8335">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Divisor 7%</label>
+                        <input type="number" id="paramDiv07" value="0.8335" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-2">Divisor CT</label>
-                        <input type="number" id="paramDivCT" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm" value="0.9">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Divisor CT</label>
+                        <input type="number" id="paramDivCT" value="0.9" step="0.0001" class="w-full p-2 border rounded-lg text-center text-sm">
                     </div>
                 </div>
-                
+
                 <div class="flex justify-between items-center">
                     <button onclick="resetParams()" class="text-slate-500 hover:text-slate-700 text-sm">Restaurar Padrões</button>
                     <button onclick="saveParams()" class="btn-primary text-white px-6 py-2 rounded-xl font-medium">
@@ -638,37 +724,35 @@
         </div>
     </div>
 
+    <!-- JAVASCRIPT -->
     <script>
-        // ========== VARIÁVEIS GLOBAIS ==========
+        // Variáveis Globais
         let data = [];
         let currentData = [];
         let newData = [];
         let operationMode = 'simple';
-        let currentFileNames = '';
-        
         let calcParams = {
             f1: 2, f2: 5.60, f3: 0.82,
             markupCorte: 1.35, markupRolo: 1.30,
             div18: 0.7235, div12: 0.7835, div07: 0.8335, divCT: 0.9
         };
 
-        // ========== INICIALIZAÇÃO ==========
+        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
-            loadCalcParams();
+            loadParams();
             checkCloudConfig();
             loadLocalCache();
+            loadCloudAnalyses();
+            loadCalcParamsFromCloud();
         });
 
-        // ========== FUNÇÕES DE CONFIGURAÇÃO ==========
+        // Verificar configuração da nuvem
         function checkCloudConfig() {
             if (!CLOUD_CONFIG.URL_SIMPLE && !CLOUD_CONFIG.URL_COMPARE) {
                 document.getElementById('configWarning').classList.remove('hidden');
                 updateCloudStatus(false);
             } else {
-                document.getElementById('cloudAnalyses').classList.remove('hidden');
                 updateCloudStatus(true);
-                loadCloudAnalyses('simple');
-                loadCloudAnalyses('compare');
             }
         }
 
@@ -688,8 +772,9 @@
             }
         }
 
-        // ========== NOTIFICAÇÕES ==========
+        // Notificações
         function showNotification(message, type = 'info') {
+            const container = document.getElementById('notifications');
             const colors = {
                 success: 'bg-emerald-500',
                 error: 'bg-red-500',
@@ -697,7 +782,6 @@
                 info: 'bg-blue-500'
             };
             
-            const container = document.getElementById('notifications');
             const notif = document.createElement('div');
             notif.className = `notification ${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg font-medium`;
             notif.textContent = message;
@@ -706,27 +790,16 @@
             setTimeout(() => notif.remove(), 4000);
         }
 
-        // ========== MODO DE OPERAÇÃO ==========
-        function selectMode(mode) {
-            operationMode = mode;
-            document.getElementById('modeSelection').classList.add('hidden');
-            document.getElementById('uploadSection').classList.remove('hidden');
-            
-            if (mode === 'simple') {
-                document.getElementById('simpleUpload').classList.remove('hidden');
-                document.getElementById('compareUpload').classList.add('hidden');
-            } else {
-                document.getElementById('simpleUpload').classList.add('hidden');
-                document.getElementById('compareUpload').classList.remove('hidden');
-            }
-        }
-
-        function backToMode() {
+        // Navegação
+        function goToHome() {
+            document.getElementById('homeScreen').classList.remove('hidden');
             document.getElementById('uploadSection').classList.add('hidden');
-            document.getElementById('modeSelection').classList.remove('hidden');
+            document.getElementById('analysisSection').classList.add('hidden');
+            document.getElementById('reportSection').classList.add('hidden');
+            document.getElementById('compareSummary').classList.add('hidden');
         }
 
-        function backToAnalysis() {
+        function goBackToAnalysis() {
             document.getElementById('reportSection').classList.add('hidden');
             document.getElementById('analysisSection').classList.remove('hidden');
             if (operationMode === 'compare') {
@@ -734,39 +807,58 @@
             }
         }
 
-        // ========== UPLOAD DE ARQUIVOS ==========
+        function selectMode(mode) {
+            operationMode = mode;
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('uploadSection').classList.remove('hidden');
+            
+            if (mode === 'simple') {
+                document.getElementById('uploadTitle').textContent = 'Análise Simples';
+                document.getElementById('simpleUpload').classList.remove('hidden');
+                document.getElementById('compareUpload').classList.add('hidden');
+            } else {
+                document.getElementById('uploadTitle').textContent = 'Comparativo de Tabelas';
+                document.getElementById('simpleUpload').classList.add('hidden');
+                document.getElementById('compareUpload').classList.remove('hidden');
+            }
+        }
+
+        // Upload de arquivos
         let fileSimple = null, fileCurrent = null, fileNew = null;
 
-        function handleFileSelect(input, type) {
+        function handleFile(input, type) {
             const file = input.files[0];
             if (!file) return;
             
             if (type === 'simple') {
                 fileSimple = file;
                 document.getElementById('fileSimpleName').textContent = '✓ ' + file.name;
-                currentFileNames = file.name;
             } else if (type === 'current') {
                 fileCurrent = file;
                 document.getElementById('fileCurrentName').textContent = '✓ ' + file.name;
             } else if (type === 'new') {
                 fileNew = file;
                 document.getElementById('fileNewName').textContent = '✓ ' + file.name;
-                currentFileNames = `${fileCurrent?.name || 'atual'} vs ${file.name}`;
             }
         }
 
         async function processFiles() {
             try {
                 if (operationMode === 'simple') {
-                    if (!fileSimple) { showNotification('Selecione um arquivo Excel', 'warning'); return; }
-                    data = await readExcelFile(fileSimple);
-                    analyzeSimpleData();
+                    if (!fileSimple) {
+                        showNotification('Selecione um arquivo', 'warning');
+                        return;
+                    }
+                    data = await readExcel(fileSimple);
+                    analyzeSimple();
                 } else {
-                    if (!fileCurrent || !fileNew) { showNotification('Selecione ambos os arquivos', 'warning'); return; }
-                    currentData = await readExcelFile(fileCurrent);
-                    newData = await readExcelFile(fileNew);
-                    currentFileNames = `${fileCurrent.name} vs ${fileNew.name}`;
-                    analyzeCompareData();
+                    if (!fileCurrent || !fileNew) {
+                        showNotification('Selecione ambos os arquivos', 'warning');
+                        return;
+                    }
+                    currentData = await readExcel(fileCurrent);
+                    newData = await readExcel(fileNew);
+                    analyzeCompare();
                 }
                 
                 document.getElementById('uploadSection').classList.add('hidden');
@@ -777,27 +869,23 @@
                     updateCompareSummary();
                 }
                 
-                renderAnalysisTable();
                 populateFilters();
+                renderAnalysis();
                 showNotification('Análise concluída!', 'success');
-                
             } catch (error) {
-                showNotification('Erro ao processar: ' + error.message, 'error');
-                console.error(error);
+                showNotification('Erro: ' + error.message, 'error');
             }
         }
 
-        async function readExcelFile(file) {
+        async function readExcel(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
                         const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                        const sheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[sheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                        const parsed = parseExcelData(jsonData);
-                        resolve(parsed);
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        resolve(parseExcelData(json));
                     } catch (err) {
                         reject(err);
                     }
@@ -808,7 +896,7 @@
         }
 
         function parseExcelData(rows) {
-            if (rows.length < 2) throw new Error('Arquivo vazio ou sem dados');
+            if (rows.length < 2) throw new Error('Arquivo vazio');
             
             const headers = rows[0].map(h => String(h || '').toUpperCase().trim());
             
@@ -824,9 +912,9 @@
             const colCode = findCol(['CÓDIGO', 'CODIGO', 'COD', 'SKU']);
             const colMaterial = findCol(['MATERIAL', 'MAT', 'TIPO']);
             const colMesh = findCol(['MALHA', 'MESH']);
-            const colWire = findCol(['FIO', 'WIRE', 'DIÂMETRO', 'DIAMETRO']);
+            const colWire = findCol(['FIO', 'WIRE', 'DIÂMETRO']);
             const colWidth = findCol(['LARGURA', 'LARG', 'WIDTH']);
-            const colPrice = findCol(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'VALOR', 'M2', 'USD']);
+            const colPrice = findCol(['$/M2', '$/M²', 'PRECO', 'PREÇO', 'M2']);
             
             if (colMaterial === -1 || colPrice === -1) {
                 throw new Error('Colunas MATERIAL e $/m2 não encontradas!');
@@ -835,40 +923,34 @@
             const result = [];
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row || row.length === 0) continue;
+                if (!row || !row.length) continue;
                 
-                const material = row[colMaterial];
-                const priceRaw = row[colPrice];
-                
-                if (!material && !priceRaw) continue;
-                
-                const price = parseFloat(String(priceRaw || '0').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+                const price = parseFloat(String(row[colPrice] || '0').replace(',', '.')) || 0;
+                if (!row[colMaterial] && price === 0) continue;
                 
                 result.push({
                     id: i,
-                    code: row[colCode] || '-',
-                    material: String(material || 'N/A').trim(),
-                    mesh: String(row[colMesh] || '-').trim(),
-                    wire: String(row[colWire] || '-').trim(),
-                    width: String(row[colWidth] || '-').trim(),
+                    code: String(row[colCode] || '-'),
+                    material: String(row[colMaterial] || 'N/A'),
+                    mesh: String(row[colMesh] || '-'),
+                    wire: String(row[colWire] || '-'),
+                    width: String(row[colWidth] || '-'),
                     price: price,
-                    originalPrice: price,
                     priceOld: null,
+                    priceEdited: null,
                     changeType: null,
                     variation: null,
                     anomaly: false,
                     reasons: [],
-                    isEdited: false,
-                    isEmpty: price === 0
+                    isEdited: false
                 });
             }
             
             return result;
         }
 
-        // ========== ANÁLISE SIMPLES ==========
-        function analyzeSimpleData() {
-            // Agrupar por material + malha + fio
+        // Análise Simples
+        function analyzeSimple() {
             const groups = {};
             data.forEach(item => {
                 const key = `${item.material}|${item.mesh}|${item.wire}`;
@@ -876,7 +958,6 @@
                 groups[key].push(item);
             });
             
-            // Analisar cada grupo
             Object.values(groups).forEach(group => {
                 if (group.length < 2) return;
                 
@@ -886,38 +967,31 @@
                 const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
                 
                 group.forEach(item => {
-                    if (item.price > 0 && avg > 0) {
-                        const diff = Math.abs((item.price - avg) / avg);
-                        if (diff > 0.15) {
-                            item.anomaly = true;
-                            item.reasons.push(`Desvio de ${Math.round(diff * 100)}% da média do grupo ($${avg.toFixed(2)})`);
-                        }
+                    if (item.price > 0 && Math.abs((item.price - avg) / avg) > 0.15) {
+                        item.anomaly = true;
+                        const pct = ((item.price - avg) / avg * 100).toFixed(1);
+                        item.reasons.push(`Desvio de ${pct}% da média do grupo ($${avg.toFixed(2)})`);
                     }
-                    
                     if (item.price === 0) {
                         item.anomaly = true;
-                        item.isEmpty = true;
                         item.reasons.push('Preço em branco');
                     }
                 });
             });
             
-            // Análise de hierarquia de materiais
-            analyzeMaterialHierarchy();
+            checkMaterialHierarchy();
         }
 
-        function analyzeMaterialHierarchy() {
+        function checkMaterialHierarchy() {
             const getMaterialScore = (mat) => {
-                const m = String(mat).toUpperCase();
+                const m = mat.toUpperCase();
                 if (m.includes('316')) return 40;
                 if (m.includes('304')) return 30;
                 if (m.includes('302')) return 20;
-                if (m.includes('GALV')) return 15;
-                if (m.includes('CARB')) return 10;
+                if (m.includes('GALV')) return 10;
                 return 5;
             };
             
-            // Agrupar por malha + fio + largura
             const specGroups = {};
             data.forEach(item => {
                 const key = `${item.mesh}|${item.wire}|${item.width}`;
@@ -936,29 +1010,25 @@
                     
                     if (lower.price > higher.price * 1.05 && lower.price > 0 && higher.price > 0) {
                         lower.anomaly = true;
-                        lower.reasons.push(`Incoerência: ${lower.material} ($${lower.price.toFixed(2)}) mais caro que ${higher.material} ($${higher.price.toFixed(2)})`);
-                        
                         higher.anomaly = true;
-                        higher.reasons.push(`Verificar: ${higher.material} ($${higher.price.toFixed(2)}) mais barato que ${lower.material} ($${lower.price.toFixed(2)})`);
+                        lower.reasons.push(`Incoerência: ${lower.material} mais caro que ${higher.material}`);
+                        higher.reasons.push(`Verificar: ${higher.material} mais barato que ${lower.material}`);
                     }
                 }
             });
         }
 
-        // ========== ANÁLISE COMPARATIVA ==========
-        function analyzeCompareData() {
+        // Análise Comparativa
+        function analyzeCompare() {
             data = [];
             
-            const createKey = (item) => {
-                return `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
-            };
+            const createKey = (item) => `${item.code}|${item.material}|${item.mesh}|${item.wire}|${item.width}`.toUpperCase();
             
             const currentMap = {};
             currentData.forEach(item => {
                 currentMap[createKey(item)] = item;
             });
             
-            // Processar nova tabela
             newData.forEach(item => {
                 const key = createKey(item);
                 const current = currentMap[key];
@@ -977,7 +1047,6 @@
                 }
                 
                 if (item.price === 0) {
-                    newItem.isEmpty = true;
                     newItem.anomaly = true;
                     newItem.reasons.push('Preço em branco');
                 }
@@ -985,16 +1054,15 @@
                 data.push(newItem);
             });
             
-            // Itens removidos
             Object.values(currentMap).forEach(item => {
-                const removedItem = { ...item };
-                removedItem.changeType = 'removed';
-                removedItem.priceOld = item.price;
-                data.push(removedItem);
+                data.push({
+                    ...item,
+                    changeType: 'removed',
+                    priceOld: item.price
+                });
             });
             
-            // Análises adicionais
-            analyzeSimpleData();
+            analyzeSimple();
         }
 
         function updateCompareSummary() {
@@ -1004,7 +1072,6 @@
             const removed = data.filter(i => i.changeType === 'removed').length;
             const review = data.filter(i => i.anomaly).length;
             
-            // Calcular variação média
             const withVariation = data.filter(i => i.variation !== null && i.variation !== undefined);
             const avgVariation = withVariation.length > 0 
                 ? withVariation.reduce((sum, i) => sum + i.variation, 0) / withVariation.length 
@@ -1016,204 +1083,193 @@
             document.getElementById('statRemoved').textContent = removed;
             document.getElementById('statReview').textContent = review;
             document.getElementById('statVariation').textContent = (avgVariation >= 0 ? '+' : '') + avgVariation.toFixed(1) + '%';
-            document.getElementById('statVariation').className = avgVariation >= 0 ? 'text-3xl font-bold text-red-600' : 'text-3xl font-bold text-emerald-600';
             
-            // Resumo por material
+            // Resumo por Material
             const byMaterial = {};
             data.forEach(item => {
                 if (!byMaterial[item.material]) {
-                    byMaterial[item.material] = { total: 0, changed: 0, variations: [] };
+                    byMaterial[item.material] = { count: 0, variations: [] };
                 }
-                byMaterial[item.material].total++;
-                if (item.changeType === 'changed') {
-                    byMaterial[item.material].changed++;
-                    if (item.variation !== null) {
-                        byMaterial[item.material].variations.push(item.variation);
-                    }
+                byMaterial[item.material].count++;
+                if (item.variation !== null) {
+                    byMaterial[item.material].variations.push(item.variation);
                 }
             });
             
-            let groupHtml = '';
-            Object.entries(byMaterial).sort((a, b) => b[1].changed - a[1].changed).forEach(([mat, stats]) => {
-                const avgVar = stats.variations.length > 0 
-                    ? stats.variations.reduce((a, b) => a + b, 0) / stats.variations.length 
+            let materialHTML = '';
+            Object.entries(byMaterial).sort((a, b) => b[1].count - a[1].count).forEach(([mat, info]) => {
+                const avgVar = info.variations.length > 0 
+                    ? info.variations.reduce((a, b) => a + b, 0) / info.variations.length 
                     : 0;
-                const varClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
-                const varIcon = avgVar >= 0 ? '▲' : '▼';
+                const icon = avgVar >= 0 ? '▲' : '▼';
+                const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
                 
-                groupHtml += `
-                    <div class="bg-white rounded-lg p-3 shadow-sm border">
-                        <div class="font-bold text-slate-800 truncate">${mat}</div>
-                        <div class="text-xs text-slate-500">${stats.total} itens | ${stats.changed} alterados</div>
-                        ${stats.changed > 0 ? `<div class="text-sm font-bold ${varClass}">${varIcon} ${Math.abs(avgVar).toFixed(1)}%</div>` : ''}
+                materialHTML += `
+                    <div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm">
+                        <span class="font-medium text-slate-700">${mat}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400">${info.count} itens</span>
+                            <span class="${colorClass} font-bold">${icon} ${Math.abs(avgVar).toFixed(1)}%</span>
+                        </div>
                     </div>
                 `;
             });
-            document.getElementById('groupSummary').innerHTML = groupHtml;
+            document.getElementById('materialSummary').innerHTML = materialHTML || '<p class="text-slate-400 text-sm">Sem dados</p>';
             
-            // Resumo por malha
+            // Resumo por Malha
             const byMesh = {};
             data.forEach(item => {
                 if (!byMesh[item.mesh]) {
-                    byMesh[item.mesh] = { total: 0, changed: 0, variations: [] };
+                    byMesh[item.mesh] = { count: 0, variations: [] };
                 }
-                byMesh[item.mesh].total++;
-                if (item.changeType === 'changed') {
-                    byMesh[item.mesh].changed++;
-                    if (item.variation !== null) {
-                        byMesh[item.mesh].variations.push(item.variation);
-                    }
+                byMesh[item.mesh].count++;
+                if (item.variation !== null) {
+                    byMesh[item.mesh].variations.push(item.variation);
                 }
             });
             
-            let meshHtml = '';
-            Object.entries(byMesh).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([mesh, stats]) => {
-                const avgVar = stats.variations.length > 0 
-                    ? stats.variations.reduce((a, b) => a + b, 0) / stats.variations.length 
+            let meshHTML = '';
+            Object.entries(byMesh).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([mesh, info]) => {
+                const avgVar = info.variations.length > 0 
+                    ? info.variations.reduce((a, b) => a + b, 0) / info.variations.length 
                     : 0;
-                const varClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
-                const varIcon = avgVar >= 0 ? '▲' : '▼';
+                const icon = avgVar >= 0 ? '▲' : '▼';
+                const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
                 
-                meshHtml += `
-                    <div class="bg-white rounded-lg p-2 shadow-sm border text-center">
-                        <div class="font-bold text-slate-800">Malha ${mesh}</div>
-                        <div class="text-xs text-slate-500">${stats.changed}/${stats.total} alt.</div>
-                        ${stats.changed > 0 ? `<div class="text-sm font-bold ${varClass}">${varIcon} ${Math.abs(avgVar).toFixed(1)}%</div>` : '<div class="text-xs text-slate-300">-</div>'}
+                meshHTML += `
+                    <div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm">
+                        <span class="font-medium text-slate-700">Malha ${mesh}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400">${info.count}</span>
+                            <span class="${colorClass} font-bold">${icon} ${Math.abs(avgVar).toFixed(1)}%</span>
+                        </div>
                     </div>
                 `;
             });
-            document.getElementById('meshSummary').innerHTML = meshHtml;
+            document.getElementById('meshSummary').innerHTML = meshHTML || '<p class="text-slate-400 text-sm">Sem dados</p>';
         }
 
-        // ========== RENDERIZAÇÃO DA TABELA ==========
-        function renderAnalysisTable() {
+        // Renderizar tabela de análise
+        function renderAnalysis() {
             const tbody = document.getElementById('analysisTableBody');
             tbody.innerHTML = '';
             
-            data.sort((a, b) => {
+            const sorted = [...data].sort((a, b) => {
                 const matA = String(a.material || '');
                 const matB = String(b.material || '');
                 if (matA !== matB) return matA.localeCompare(matB);
                 return (parseFloat(a.mesh) || 0) - (parseFloat(b.mesh) || 0);
             });
             
-            data.forEach((item, idx) => {
+            sorted.forEach((item, idx) => {
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-idx', idx);
                 tr.setAttribute('data-material', item.material);
                 tr.setAttribute('data-mesh', item.mesh);
                 tr.setAttribute('data-wire', item.wire);
-                tr.setAttribute('data-status', getItemStatus(item));
                 
-                // Definir classe da linha
-                let rowClass = 'hover:bg-slate-50';
-                if (item.isEmpty) rowClass = 'bg-orange-50';
-                else if (item.changeType === 'removed') rowClass = 'bg-red-50';
-                else if (item.changeType === 'new') rowClass = 'bg-emerald-50';
-                else if (item.changeType === 'changed') rowClass = 'bg-blue-50';
-                else if (item.anomaly) rowClass = 'bg-amber-50';
-                else if (item.isEdited) rowClass = 'bg-purple-50';
+                const materialClass = getMaterialClass(item.material);
+                let rowClass = materialClass;
+                
+                let status = 'ok', statusClass = 'bg-emerald-100 text-emerald-700', statusText = '✅ OK';
+                if (item.changeType === 'removed') {
+                    status = 'removed'; statusClass = 'bg-slate-200 text-slate-600'; statusText = '⚪ Removido';
+                } else if (item.changeType === 'new') {
+                    status = 'new'; statusClass = 'bg-emerald-100 text-emerald-700'; statusText = '🟢 Novo';
+                } else if (item.anomaly) {
+                    status = 'review'; statusClass = 'bg-red-100 text-red-700'; statusText = '🔴 Revisar';
+                    rowClass += ' bg-red-50';
+                } else if (item.changeType === 'changed') {
+                    status = 'changed'; statusClass = 'bg-blue-100 text-blue-700'; statusText = '🔵 Alterado';
+                }
+                
+                if (item.isEdited) {
+                    rowClass += ' bg-amber-50';
+                }
                 
                 tr.className = rowClass;
+                tr.setAttribute('data-status', status);
                 
-                // Status badge
-                let statusBadge = '';
-                if (item.isEmpty) {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-orange-200 text-orange-800">Vazio</span>';
-                } else if (item.changeType === 'removed') {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-200 text-red-800">Removido</span>';
-                } else if (item.changeType === 'new') {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-200 text-emerald-800">Novo</span>';
-                } else if (item.changeType === 'changed') {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-200 text-blue-800">Alterado</span>';
-                } else if (item.anomaly) {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-amber-200 text-amber-800">Revisar</span>';
-                } else if (item.isEdited) {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-purple-200 text-purple-800">Editado</span>';
-                } else {
-                    statusBadge = '<span class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">OK</span>';
-                }
-                
-                // Variação
-                let variationHtml = '-';
+                let variationHTML = '-';
                 if (item.variation !== null && item.variation !== undefined) {
                     const varClass = item.variation >= 0 ? 'variation-up' : 'variation-down';
-                    const varIcon = item.variation >= 0 ? '▲' : '▼';
-                    variationHtml = `<span class="${varClass}">${varIcon} ${item.variation >= 0 ? '+' : ''}${item.variation.toFixed(1)}%</span>`;
+                    const icon = item.variation >= 0 ? '▲' : '▼';
+                    variationHTML = `<span class="${varClass}">${icon} ${item.variation >= 0 ? '+' : ''}${item.variation.toFixed(1)}%</span>`;
                 } else if (item.changeType === 'new') {
-                    variationHtml = '<span class="variation-new">NOVO</span>';
+                    variationHTML = '<span class="variation-new">NOVO</span>';
                 }
                 
-                // Motivos (legíveis)
-                const reasonsText = item.reasons.length > 0 ? item.reasons.join(' | ') : '-';
+                const reasons = item.reasons.join(' | ') || '-';
                 
                 tr.innerHTML = `
-                    <td class="p-3">${statusBadge}</td>
-                    <td class="p-3 font-mono text-xs">${item.code}</td>
-                    <td class="p-3 font-medium">${item.material}</td>
-                    <td class="p-3 text-center">${item.mesh}</td>
-                    <td class="p-3 text-center">${item.wire}</td>
-                    <td class="p-3 text-center">${item.width}</td>
-                    <td class="p-3 text-center text-slate-400">${item.priceOld !== null ? formatNumber(item.priceOld) : '-'}</td>
-                    <td class="p-3 text-center font-bold">${formatNumber(item.price)}</td>
-                    <td class="p-3 text-center">${variationHtml}</td>
-                    <td class="p-3 bg-amber-50">
-                        <input type="number" step="0.01" value="${item.price || ''}" 
-                            onchange="updatePrice(${idx}, this.value)"
+                    <td class="p-3 border-b"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${statusText}</span></td>
+                    <td class="p-3 border-b font-mono text-xs">${item.code}</td>
+                    <td class="p-3 border-b font-medium">${item.material}</td>
+                    <td class="p-3 border-b text-center">${item.mesh}</td>
+                    <td class="p-3 border-b text-center">${item.wire}</td>
+                    <td class="p-3 border-b text-center">${item.width}</td>
+                    <td class="p-3 border-b text-right text-slate-400">${item.priceOld !== null ? formatNum(item.priceOld) : '-'}</td>
+                    <td class="p-3 border-b text-right font-bold">${formatNum(item.price)}</td>
+                    <td class="p-3 border-b text-center">${variationHTML}</td>
+                    <td class="p-3 border-b bg-amber-50">
+                        <input type="number" step="0.01" value="${item.priceEdited || item.price || ''}" 
+                            onchange="editPrice(${idx}, this.value)"
                             class="w-20 p-1 text-center border rounded text-sm font-bold">
                     </td>
-                    <td class="p-3 reason-cell text-xs text-slate-600" title="${reasonsText}">${reasonsText}</td>
-                    <td class="p-3 text-center">
-                        ${item.anomaly || item.isEmpty ? `<button onclick="approveItem(${idx})" class="px-2 py-1 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded">Aprovar</button>` : ''}
+                    <td class="p-3 border-b reason-cell text-xs text-slate-600" title="${reasons}">${reasons}</td>
+                    <td class="p-3 border-b text-center">
+                        ${item.anomaly ? `<button onclick="approveItem(${idx})" class="px-2 py-1 text-xs bg-emerald-500 hover:bg-emerald-600 text-white rounded">Aprovar</button>` : ''}
+                        ${item.isEdited ? `<button onclick="undoEdit(${idx})" class="px-2 py-1 text-xs bg-slate-400 hover:bg-slate-500 text-white rounded ml-1">Desfazer</button>` : ''}
                     </td>
                 `;
                 
                 tbody.appendChild(tr);
             });
             
-            updateAnalysisStats();
+            updateFilterCount();
         }
 
-        function getItemStatus(item) {
-            if (item.anomaly || item.isEmpty) return 'review';
-            if (item.changeType === 'changed') return 'changed';
-            if (item.changeType === 'new') return 'new';
-            if (item.changeType === 'removed') return 'removed';
-            return 'ok';
+        function getMaterialClass(material) {
+            const m = String(material).toUpperCase();
+            if (m.includes('316')) return 'material-316';
+            if (m.includes('304')) return 'material-304';
+            if (m.includes('302')) return 'material-302';
+            if (m.includes('GALV')) return 'material-galv';
+            if (m.includes('CARB') || m.includes('ACO C')) return 'material-carb';
+            return 'material-other';
         }
 
-        function updateAnalysisStats() {
-            const total = data.length;
-            const review = data.filter(i => i.anomaly || i.isEmpty).length;
-            const edited = data.filter(i => i.isEdited).length;
-            document.getElementById('analysisStats').textContent = `Total: ${total} itens | Para revisão: ${review} | Editados: ${edited}`;
+        function formatNum(val) {
+            if (val === null || val === undefined || isNaN(val)) return '-';
+            return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // ========== EDIÇÃO E APROVAÇÃO ==========
-        function updatePrice(idx, value) {
+        // Editar preço
+        function editPrice(idx, value) {
             const item = data[idx];
-            const newPrice = parseFloat(value) || 0;
+            item.priceEdited = parseFloat(value) || 0;
+            item.isEdited = item.priceEdited !== item.price;
             
-            item.price = newPrice;
-            item.isEdited = newPrice !== item.originalPrice;
-            item.isEmpty = newPrice === 0;
-            
-            if (newPrice > 0 && item.isEmpty) {
-                item.anomaly = false;
-                item.reasons = item.reasons.filter(r => r !== 'Preço em branco');
+            if (item.isEdited) {
+                item.price = item.priceEdited;
             }
             
-            // Re-renderizar apenas essa linha
-            renderAnalysisTable();
+            renderAnalysis();
+            applyFilters();
+        }
+
+        function undoEdit(idx) {
+            const item = data[idx];
+            item.priceEdited = null;
+            item.isEdited = false;
+            renderAnalysis();
             applyFilters();
         }
 
         function approveItem(idx) {
-            const item = data[idx];
-            item.anomaly = false;
-            item.reasons = [];
-            
-            renderAnalysisTable();
+            data[idx].anomaly = false;
+            data[idx].reasons = [];
+            renderAnalysis();
             applyFilters();
             showNotification('Item aprovado!', 'success');
         }
@@ -1224,35 +1280,29 @@
             
             visibleRows.forEach(row => {
                 const idx = parseInt(row.getAttribute('data-idx'));
-                if (data[idx] && (data[idx].anomaly || data[idx].isEmpty)) {
+                if (data[idx] && data[idx].anomaly) {
                     data[idx].anomaly = false;
                     data[idx].reasons = [];
                     count++;
                 }
             });
             
-            renderAnalysisTable();
+            renderAnalysis();
             applyFilters();
             showNotification(`${count} itens aprovados!`, 'success');
         }
 
-        // ========== FILTROS ==========
+        // Filtros
         function populateFilters() {
-            const materials = [...new Set(data.map(i => i.material))].filter(Boolean).sort();
-            const meshes = [...new Set(data.map(i => i.mesh))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
-            const wires = [...new Set(data.map(i => i.wire))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
+            const materials = [...new Set(data.map(i => i.material))].sort();
+            const meshes = [...new Set(data.map(i => i.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            const wires = [...new Set(data.map(i => i.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
             
-            const matSelect = document.getElementById('filterMaterial');
-            const meshSelect = document.getElementById('filterMesh');
-            const wireSelect = document.getElementById('filterWire');
-            
-            matSelect.innerHTML = '<option value="">Todos Materiais</option>' + 
+            document.getElementById('filterMaterial').innerHTML = '<option value="">Todos Materiais</option>' + 
                 materials.map(m => `<option value="${m}">${m}</option>`).join('');
-            
-            meshSelect.innerHTML = '<option value="">Todas Malhas</option>' + 
+            document.getElementById('filterMesh').innerHTML = '<option value="">Todas Malhas</option>' + 
                 meshes.map(m => `<option value="${m}">${m}</option>`).join('');
-            
-            wireSelect.innerHTML = '<option value="">Todos Fios</option>' + 
+            document.getElementById('filterWire').innerHTML = '<option value="">Todos Fios</option>' + 
                 wires.map(w => `<option value="${w}">${w}</option>`).join('');
         }
 
@@ -1266,22 +1316,17 @@
             let visible = 0;
             
             rows.forEach(row => {
-                const rowMat = row.getAttribute('data-material');
-                const rowMesh = row.getAttribute('data-mesh');
-                const rowWire = row.getAttribute('data-wire');
-                const rowStatus = row.getAttribute('data-status');
-                
                 let show = true;
-                if (material && rowMat !== material) show = false;
-                if (mesh && rowMesh !== mesh) show = false;
-                if (wire && rowWire !== wire) show = false;
-                if (status && rowStatus !== status) show = false;
+                if (material && row.getAttribute('data-material') !== material) show = false;
+                if (mesh && row.getAttribute('data-mesh') !== mesh) show = false;
+                if (wire && row.getAttribute('data-wire') !== wire) show = false;
+                if (status && row.getAttribute('data-status') !== status) show = false;
                 
                 row.style.display = show ? '' : 'none';
                 if (show) visible++;
             });
             
-            document.getElementById('filteredInfo').textContent = `Exibindo ${visible} de ${data.length} itens`;
+            updateFilterCount(visible);
         }
 
         function clearFilters() {
@@ -1292,32 +1337,44 @@
             applyFilters();
         }
 
-        // ========== RELATÓRIO ==========
+        function updateFilterCount(visible) {
+            const total = data.length;
+            document.getElementById('filterCount').textContent = visible !== undefined 
+                ? `Exibindo: ${visible} de ${total}` 
+                : `Total: ${total} itens`;
+        }
+
+        // Gerar Relatório
         function generateReport() {
-            // Salvar antes de gerar
             saveToLocal();
             saveToCloud();
             
             const now = new Date();
-            const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-            document.getElementById('reportDate').textContent = `Gerado em: ${dateStr}`;
-            document.getElementById('footerDate').textContent = dateStr;
-            
-            // Filtrar apenas itens válidos (não removidos)
-            const reportData = data.filter(i => i.changeType !== 'removed' && !i.isEmpty);
-            
-            // Ordenar
-            reportData.sort((a, b) => {
-                const matA = String(a.material || '');
-                const matB = String(b.material || '');
-                if (matA !== matB) return matA.localeCompare(matB);
-                return (parseFloat(a.mesh) || 0) - (parseFloat(b.mesh) || 0);
+            const dateStr = now.toLocaleDateString('pt-BR', { 
+                day: '2-digit', month: '2-digit', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
             });
             
-            // Preencher filtros da publicação
-            const materials = [...new Set(reportData.map(i => i.material))].filter(Boolean).sort();
-            const meshes = [...new Set(reportData.map(i => i.mesh))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
-            const wires = [...new Set(reportData.map(i => i.wire))].filter(Boolean).sort((a, b) => parseFloat(a) - parseFloat(b));
+            // Calcular variação geral para exibir no relatório
+            const itemsWithVariation = data.filter(i => i.variation !== null && i.variation !== undefined);
+            const generalVariation = itemsWithVariation.length > 0 
+                ? itemsWithVariation.reduce((sum, i) => sum + i.variation, 0) / itemsWithVariation.length 
+                : null;
+            
+            let variationHTML = '';
+            if (generalVariation !== null) {
+                const varIcon = generalVariation >= 0 ? '▲' : '▼';
+                const varColor = generalVariation >= 0 ? 'text-red-600' : 'text-emerald-600';
+                variationHTML = ` | <span class="${varColor} font-bold">${varIcon} Variação Geral: ${generalVariation >= 0 ? '+' : ''}${generalVariation.toFixed(1)}%</span>`;
+            }
+            
+            document.getElementById('reportDate').innerHTML = `Gerado em: ${dateStr}${variationHTML}`;
+            document.getElementById('reportFooterDate').textContent = `Publicado em: ${dateStr} | Versão 7.7`;
+            
+            // Filtros da publicação
+            const materials = [...new Set(data.map(i => i.material))].sort();
+            const meshes = [...new Set(data.map(i => i.mesh))].sort((a, b) => parseFloat(a) - parseFloat(b));
+            const wires = [...new Set(data.map(i => i.wire))].sort((a, b) => parseFloat(a) - parseFloat(b));
             
             document.getElementById('pubFilterMaterial').innerHTML = '<option value="">Todos Materiais</option>' + 
                 materials.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -1326,56 +1383,67 @@
             document.getElementById('pubFilterWire').innerHTML = '<option value="">Todos Fios</option>' + 
                 wires.map(w => `<option value="${w}">${w}</option>`).join('');
             
-            // Renderizar tabela
+            renderReportTable();
+            
+            document.getElementById('analysisSection').classList.add('hidden');
+            document.getElementById('compareSummary').classList.add('hidden');
+            document.getElementById('reportSection').classList.remove('hidden');
+            
+            showNotification('Relatório gerado!', 'success');
+        }
+
+        function renderReportTable() {
             const tbody = document.getElementById('reportTableBody');
             tbody.innerHTML = '';
             
             const { f1, f2, f3, markupCorte, markupRolo, div18, div12, div07, divCT } = calcParams;
             const base = f1 * f2 * f3;
             
+            const reportData = data
+                .filter(item => item.changeType !== 'removed')
+                .sort((a, b) => {
+                    const matA = String(a.material || '');
+                    const matB = String(b.material || '');
+                    if (matA !== matB) return matA.localeCompare(matB);
+                    return (parseFloat(a.mesh) || 0) - (parseFloat(b.mesh) || 0);
+                });
+            
             reportData.forEach(item => {
-                const p = item.price;
+                const p = item.price || 0;
                 const numCorte = base * markupCorte * p;
                 const numRolo = base * markupRolo * p;
                 
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-blue-50 text-xs';
+                tr.className = getMaterialClass(item.material) + ' hover:bg-slate-50';
                 tr.setAttribute('data-code', item.code);
                 tr.setAttribute('data-material', item.material);
                 tr.setAttribute('data-mesh', item.mesh);
                 tr.setAttribute('data-wire', item.wire);
                 
                 tr.innerHTML = `
-                    <td class="p-2 border-b">${item.code}</td>
+                    <td class="p-2 border-b font-mono text-xs">${item.code}</td>
                     <td class="p-2 border-b font-medium">${item.material}</td>
                     <td class="p-2 border-b text-center">${item.mesh}</td>
                     <td class="p-2 border-b text-center">${item.wire}</td>
                     <td class="p-2 border-b text-center">${item.width}</td>
-                    <td class="p-2 border-b text-right font-bold hide-for-vendors">${formatNumber(p)}</td>
-                    <td class="p-2 border-b text-right">${formatNumber(numCorte / div18)}</td>
-                    <td class="p-2 border-b text-right">${formatNumber(numRolo / div18)}</td>
-                    <td class="p-2 border-b text-right">${formatNumber(numCorte / div12)}</td>
-                    <td class="p-2 border-b text-right">${formatNumber(numRolo / div12)}</td>
-                    <td class="p-2 border-b text-right">${formatNumber(numCorte / div07)}</td>
-                    <td class="p-2 border-b text-right">${formatNumber(numRolo / div07)}</td>
-                    <td class="p-2 border-b text-right hide-for-vendors">${formatNumber(numCorte / divCT)}</td>
-                    <td class="p-2 border-b text-right hide-for-vendors">${formatNumber(numRolo / divCT)}</td>
+                    <td class="p-2 border-b text-right font-bold col-base">${formatNum(p)}</td>
+                    <td class="p-2 border-b text-right">${formatNum(numCorte / div18)}</td>
+                    <td class="p-2 border-b text-right">${formatNum(numRolo / div18)}</td>
+                    <td class="p-2 border-b text-right">${formatNum(numCorte / div12)}</td>
+                    <td class="p-2 border-b text-right">${formatNum(numRolo / div12)}</td>
+                    <td class="p-2 border-b text-right">${formatNum(numCorte / div07)}</td>
+                    <td class="p-2 border-b text-right">${formatNum(numRolo / div07)}</td>
+                    <td class="p-2 border-b text-right col-ct">${formatNum(numCorte / divCT)}</td>
+                    <td class="p-2 border-b text-right col-ct">${formatNum(numRolo / divCT)}</td>
                 `;
                 
                 tbody.appendChild(tr);
             });
-            
-            // Mostrar seção de relatório
-            document.getElementById('analysisSection').classList.add('hidden');
-            document.getElementById('compareSummary').classList.add('hidden');
-            document.getElementById('reportSection').classList.remove('hidden');
-            
-            showNotification('Relatório gerado com sucesso!', 'success');
         }
 
-        // ========== FILTROS DA PUBLICAÇÃO ==========
+        // Filtros da Publicação
         function applyPubFilters() {
-            const code = document.getElementById('pubFilterCode').value.toUpperCase();
+            const code = document.getElementById('pubFilterCode').value.toLowerCase();
             const material = document.getElementById('pubFilterMaterial').value;
             const mesh = document.getElementById('pubFilterMesh').value;
             const wire = document.getElementById('pubFilterWire').value;
@@ -1384,22 +1452,17 @@
             let visible = 0;
             
             rows.forEach(row => {
-                const rowCode = row.getAttribute('data-code')?.toUpperCase() || '';
-                const rowMat = row.getAttribute('data-material');
-                const rowMesh = row.getAttribute('data-mesh');
-                const rowWire = row.getAttribute('data-wire');
-                
                 let show = true;
-                if (code && !rowCode.includes(code)) show = false;
-                if (material && rowMat !== material) show = false;
-                if (mesh && rowMesh !== mesh) show = false;
-                if (wire && rowWire !== wire) show = false;
+                if (code && !row.getAttribute('data-code').toLowerCase().includes(code)) show = false;
+                if (material && row.getAttribute('data-material') !== material) show = false;
+                if (mesh && row.getAttribute('data-mesh') !== mesh) show = false;
+                if (wire && row.getAttribute('data-wire') !== wire) show = false;
                 
                 row.style.display = show ? '' : 'none';
                 if (show) visible++;
             });
             
-            document.getElementById('pubFilteredInfo').textContent = `Exibindo ${visible} itens`;
+            document.getElementById('pubFilterCount').textContent = `Exibindo: ${visible} itens`;
         }
 
         function clearPubFilters() {
@@ -1410,65 +1473,201 @@
             applyPubFilters();
         }
 
-        // ========== PUBLICAÇÃO ==========
+        // Publicação
         function publishComplete() {
-            document.querySelectorAll('.hide-for-vendors').forEach(el => el.style.display = '');
-            document.getElementById('reportActionsTop').classList.add('hidden');
-            document.getElementById('reportActions').classList.add('hidden');
-            document.getElementById('publicFooter').classList.remove('hidden');
-            showNotification('Modo Publicação Completa ativado', 'success');
+            document.querySelectorAll('.col-base, .col-ct').forEach(el => el.style.display = '');
+            showNotification('Modo Completo ativado', 'success');
         }
 
         function publishVendors() {
-            document.querySelectorAll('.hide-for-vendors').forEach(el => el.style.display = 'none');
-            document.getElementById('reportActionsTop').classList.add('hidden');
-            document.getElementById('reportActions').classList.add('hidden');
-            document.getElementById('publicFooter').classList.remove('hidden');
-            showNotification('Modo Publicação Vendedores ativado', 'success');
+            document.querySelectorAll('.col-base, .col-ct').forEach(el => el.style.display = 'none');
+            showNotification('Modo Vendedores ativado (sem $/m² e CT)', 'success');
         }
 
-        function exportToPDF() {
-            showNotification('Abrindo janela de impressão para salvar como PDF...', 'info');
-            setTimeout(() => window.print(), 500);
-        }
-
-        function copyEmbedCode(mode) {
-            const table = document.getElementById('reportTable').outerHTML;
-            const date = new Date().toLocaleDateString('pt-BR');
-            const hideVendors = mode === 'vendors' ? '.hide-for-vendors { display: none !important; }' : '';
+        // Copiar Código HTML
+        function copyEmbedCode() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR');
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            // Calcular variação geral
+            const withVariation = data.filter(i => i.variation !== null && i.variation !== undefined);
+            const avgVariation = withVariation.length > 0 
+                ? withVariation.reduce((sum, i) => sum + i.variation, 0) / withVariation.length 
+                : 0;
+            const variationText = withVariation.length > 0 
+                ? `| Variação Geral: ${avgVariation >= 0 ? '+' : ''}${avgVariation.toFixed(1)}%` 
+                : '';
+            const variationClass = avgVariation >= 0 ? 'text-red-600' : 'text-emerald-600';
+            const variationIcon = avgVariation >= 0 ? '▲' : '▼';
+            
+            const tableHTML = document.getElementById('reportTable').outerHTML;
+            
+            // Gerar resumos por material e malha
+            const byMaterial = {};
+            const byMesh = {};
+            data.filter(i => i.changeType !== 'removed').forEach(item => {
+                if (!byMaterial[item.material]) byMaterial[item.material] = { count: 0, variations: [] };
+                byMaterial[item.material].count++;
+                if (item.variation !== null) byMaterial[item.material].variations.push(item.variation);
+                
+                if (!byMesh[item.mesh]) byMesh[item.mesh] = { count: 0, variations: [] };
+                byMesh[item.mesh].count++;
+                if (item.variation !== null) byMesh[item.mesh].variations.push(item.variation);
+            });
+            
+            let materialSummaryHTML = '';
+            Object.entries(byMaterial).sort((a,b) => b[1].count - a[1].count).forEach(([mat, info]) => {
+                const avgVar = info.variations.length > 0 ? info.variations.reduce((a,b) => a+b, 0) / info.variations.length : 0;
+                const icon = avgVar >= 0 ? '▲' : '▼';
+                const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
+                const varText = info.variations.length > 0 ? `<span class="${colorClass} font-bold ml-2">${icon} ${avgVar >= 0 ? '+' : ''}${avgVar.toFixed(1)}%</span>` : '';
+                materialSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">${mat}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
+            });
+            
+            let meshSummaryHTML = '';
+            Object.entries(byMesh).sort((a,b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([mesh, info]) => {
+                const avgVar = info.variations.length > 0 ? info.variations.reduce((a,b) => a+b, 0) / info.variations.length : 0;
+                const icon = avgVar >= 0 ? '▲' : '▼';
+                const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
+                const varText = info.variations.length > 0 ? `<span class="${colorClass} font-bold ml-2">${icon} ${avgVar >= 0 ? '+' : ''}${avgVar.toFixed(1)}%</span>` : '';
+                meshSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">Malha ${mesh}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
+            });
             
             const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Central Mesh - Tabela de Preços</title>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
-<style>
-body { font-family: 'Inter', sans-serif; }
-${hideVendors}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Mesh - Tabela de Preços</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        .table-container { max-height: 70vh; overflow: auto; }
+        .table-modern { border-collapse: collapse; width: 100%; }
+        .table-modern th { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; position: sticky; top: 0; z-index: 10; padding: 12px 8px; font-size: 11px; text-transform: uppercase; }
+        .table-modern td { padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+        .table-modern tbody tr:hover { background-color: rgba(30, 58, 95, 0.05); }
+        .material-316 { background-color: rgba(139, 92, 246, 0.1); border-left: 4px solid #8b5cf6; }
+        .material-304 { background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; }
+        .material-302 { background-color: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; }
+        .material-galv { background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; }
+        .material-carb { background-color: rgba(107, 114, 128, 0.1); border-left: 4px solid #6b7280; }
+        .material-other { background-color: rgba(236, 72, 153, 0.1); border-left: 4px solid #ec4899; }
+        .filter-select { border: 2px solid #e2e8f0; padding: 8px 12px; border-radius: 10px; font-size: 13px; transition: all 0.2s; }
+        .filter-select:focus { border-color: #1e3a5f; box-shadow: 0 0 0 3px rgba(30,58,95,0.1); outline: none; }
+        .summary-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        @media print { .no-print { display: none !important; } body { background: white; } }
+    </style>
 </head>
-<body class="bg-white p-6">
-<div class="max-w-7xl mx-auto">
-<div class="text-center mb-6 pb-4 border-b-2 border-blue-900">
-<h1 class="text-2xl font-bold text-blue-900">TABELA OFICIAL DE PREÇOS</h1>
-<h2 class="text-lg text-slate-600">Central Mesh</h2>
-<p class="text-sm text-slate-400 mt-2">Publicado em: ${date} | Versão 7.00</p>
-</div>
-${table}
-<div class="mt-6 text-center text-slate-400 text-xs">
-<p>Central Mesh - Valores sujeitos a alteração sem aviso prévio</p>
-</div>
-</div>
+<body class="p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Cabeçalho -->
+        <div class="text-center mb-6 p-8 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl text-white shadow-xl">
+            <h1 class="text-3xl font-bold tracking-wide">TABELA DE PREÇOS</h1>
+            <p class="text-xl opacity-90 mt-2">Central Mesh</p>
+            <p class="text-sm opacity-60 mt-3">Publicado em: ${dateStr} às ${timeStr} ${withVariation.length > 0 ? `<span class="font-bold ${variationClass}">${variationIcon} Variação Geral: ${avgVariation >= 0 ? '+' : ''}${avgVariation.toFixed(1)}%</span>` : ''} | Versão 7.7</p>
+        </div>
+        
+        <!-- Resumos por Material e Malha -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
+            <div class="summary-card">
+                <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">📦 Resumo por Material</h3>
+                <div class="max-h-48 overflow-y-auto">${materialSummaryHTML || '<p class="text-slate-400 text-sm">Sem dados</p>'}</div>
+            </div>
+            <div class="summary-card">
+                <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">🔢 Resumo por Malha</h3>
+                <div class="max-h-48 overflow-y-auto">${meshSummaryHTML || '<p class="text-slate-400 text-sm">Sem dados</p>'}</div>
+            </div>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="glass-card rounded-xl p-4 mb-4 shadow-lg no-print">
+            <div class="flex flex-wrap gap-3 items-center">
+                <span class="text-sm font-bold text-slate-600">🔍 Filtrar:</span>
+                <input type="text" id="filterCode" onkeyup="filterTable()" placeholder="Buscar código..." class="filter-select w-36">
+                <select id="filterMat" onchange="filterTable()" class="filter-select"></select>
+                <select id="filterMesh" onchange="filterTable()" class="filter-select"></select>
+                <select id="filterWire" onchange="filterTable()" class="filter-select"></select>
+                <button onclick="clearFilters()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
+                <span id="count" class="ml-auto text-sm text-slate-500 font-medium"></span>
+            </div>
+        </div>
+        
+        <!-- Tabela -->
+        <div class="glass-card rounded-xl shadow-xl overflow-hidden">
+            <div class="table-container">
+                ${tableHTML}
+            </div>
+        </div>
+        
+        <!-- Rodapé -->
+        <div class="mt-8 text-center text-slate-400 text-sm">
+            <p class="font-medium">Central Mesh - Tabela de Preços Oficial</p>
+            <p class="mt-1 text-xs">Publicado em: ${dateStr} às ${timeStr} | Versão 7.7</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rows = document.querySelectorAll('tbody tr');
+            const materials = new Set(), meshes = new Set(), wires = new Set();
+            rows.forEach(row => {
+                if(row.getAttribute('data-material')) materials.add(row.getAttribute('data-material'));
+                if(row.getAttribute('data-mesh')) meshes.add(row.getAttribute('data-mesh'));
+                if(row.getAttribute('data-wire')) wires.add(row.getAttribute('data-wire'));
+            });
+            document.getElementById('filterMat').innerHTML = '<option value="">Todos Materiais</option>' + 
+                [...materials].sort().map(m => '<option value="'+m+'">'+m+'</option>').join('');
+            document.getElementById('filterMesh').innerHTML = '<option value="">Todas Malhas</option>' + 
+                [...meshes].sort((a,b) => parseFloat(a)-parseFloat(b)).map(m => '<option value="'+m+'">Malha '+m+'</option>').join('');
+            document.getElementById('filterWire').innerHTML = '<option value="">Todos Fios</option>' + 
+                [...wires].sort((a,b) => parseFloat(a)-parseFloat(b)).map(w => '<option value="'+w+'">Fio '+w+'</option>').join('');
+            filterTable();
+        });
+        
+        function filterTable() {
+            const code = document.getElementById('filterCode').value.toLowerCase();
+            const mat = document.getElementById('filterMat').value;
+            const mesh = document.getElementById('filterMesh').value;
+            const wire = document.getElementById('filterWire').value;
+            const rows = document.querySelectorAll('tbody tr');
+            let visible = 0;
+            rows.forEach(row => {
+                let show = true;
+                const rowCode = row.getAttribute('data-code') || '';
+                const rowMat = row.getAttribute('data-material') || '';
+                const rowMesh = row.getAttribute('data-mesh') || '';
+                const rowWire = row.getAttribute('data-wire') || '';
+                if (code && !rowCode.toLowerCase().includes(code)) show = false;
+                if (mat && rowMat !== mat) show = false;
+                if (mesh && rowMesh !== mesh) show = false;
+                if (wire && rowWire !== wire) show = false;
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            document.getElementById('count').textContent = 'Exibindo: ' + visible + ' itens';
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterCode').value = '';
+            document.getElementById('filterMat').value = '';
+            document.getElementById('filterMesh').value = '';
+            document.getElementById('filterWire').value = '';
+            filterTable();
+        }
+    <\/script>
 </body>
 </html>`;
             
             navigator.clipboard.writeText(html).then(() => {
-                showNotification('Código HTML copiado!', 'success');
+                showNotification('Código HTML copiado com resumos!', 'success');
             });
         }
 
-        // ========== SALVAMENTO LOCAL ==========
+        // Salvar Local
         function saveToLocal() {
             const key = operationMode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
             const saveData = {
@@ -1476,7 +1675,6 @@ ${table}
                 currentData: currentData,
                 newData: newData,
                 mode: operationMode,
-                fileNames: currentFileNames,
                 timestamp: new Date().toISOString()
             };
             localStorage.setItem(key, JSON.stringify(saveData));
@@ -1493,17 +1691,17 @@ ${table}
                 
                 if (simpleCache) {
                     const cache = JSON.parse(simpleCache);
-                    const date = new Date(cache.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const date = new Date(cache.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                     html += `
-                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div class="glass-card rounded-xl p-4 border-l-4 border-blue-500">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-bold text-blue-800">📊 Análise Simples</p>
-                                    <p class="text-xs text-blue-600">${cache.data?.length || 0} itens | ${date}</p>
+                                    <p class="text-xs text-slate-500">${cache.data?.length || 0} itens | ${date}</p>
                                 </div>
                                 <div class="flex gap-2">
-                                    <button onclick="loadFromLocal('simple')" class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Carregar</button>
-                                    <button onclick="clearLocal('simple')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
+                                    <button onclick="loadFromCache('simple')" class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Carregar</button>
+                                    <button onclick="clearCache('simple')" class="px-2 py-1 bg-slate-200 text-slate-600 text-xs rounded-lg hover:bg-slate-300">🗑️</button>
                                 </div>
                             </div>
                         </div>
@@ -1512,17 +1710,17 @@ ${table}
                 
                 if (compareCache) {
                     const cache = JSON.parse(compareCache);
-                    const date = new Date(cache.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const date = new Date(cache.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                     html += `
-                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                        <div class="glass-card rounded-xl p-4 border-l-4 border-emerald-500">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="font-bold text-emerald-800">🔄 Comparativo</p>
-                                    <p class="text-xs text-emerald-600">${cache.data?.length || 0} itens | ${date}</p>
+                                    <p class="text-xs text-slate-500">${cache.data?.length || 0} itens | ${date}</p>
                                 </div>
                                 <div class="flex gap-2">
-                                    <button onclick="loadFromLocal('compare')" class="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700">Carregar</button>
-                                    <button onclick="clearLocal('compare')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
+                                    <button onclick="loadFromCache('compare')" class="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700">Carregar</button>
+                                    <button onclick="clearCache('compare')" class="px-2 py-1 bg-slate-200 text-slate-600 text-xs rounded-lg hover:bg-slate-300">🗑️</button>
                                 </div>
                             </div>
                         </div>
@@ -1533,7 +1731,7 @@ ${table}
             }
         }
 
-        function loadFromLocal(mode) {
+        function loadFromCache(mode) {
             const key = mode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
             const cache = JSON.parse(localStorage.getItem(key));
             
@@ -1542,11 +1740,8 @@ ${table}
                 currentData = cache.currentData || [];
                 newData = cache.newData || [];
                 operationMode = cache.mode || mode;
-                currentFileNames = cache.fileNames || '';
                 
-                document.getElementById('modeSelection').classList.add('hidden');
-                document.getElementById('localCacheSection').classList.add('hidden');
-                document.getElementById('cloudAnalyses').classList.add('hidden');
+                document.getElementById('homeScreen').classList.add('hidden');
                 document.getElementById('analysisSection').classList.remove('hidden');
                 
                 if (mode === 'compare') {
@@ -1554,33 +1749,32 @@ ${table}
                     updateCompareSummary();
                 }
                 
-                renderAnalysisTable();
                 populateFilters();
+                renderAnalysis();
                 showNotification('Cache carregado!', 'success');
             }
         }
 
-        function clearLocal(mode) {
+        function clearCache(mode) {
             const key = mode === 'compare' ? 'centralMesh_compare' : 'centralMesh_simple';
             localStorage.removeItem(key);
             loadLocalCache();
             showNotification('Cache limpo!', 'info');
         }
 
-        // ========== SALVAMENTO NA NUVEM ==========
+        // Salvar na Nuvem
         async function saveToCloud() {
             const url = operationMode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
             
             if (!url) {
-                showNotification('Configure a URL da nuvem primeiro', 'warning');
+                showNotification('URL da nuvem não configurada', 'warning');
                 return;
             }
             
             try {
                 const payload = {
                     action: 'save',
-                    name: currentFileNames || 'Análise ' + new Date().toLocaleDateString('pt-BR'),
-                    fileNames: currentFileNames,
+                    name: 'Análise ' + new Date().toLocaleDateString('pt-BR'),
                     itemCount: data.length,
                     userName: CLOUD_CONFIG.DEFAULT_USER,
                     data: data,
@@ -1591,8 +1785,7 @@ ${table}
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload),
-                    redirect: 'follow'
+                    body: JSON.stringify(payload)
                 });
                 
                 const result = await response.json();
@@ -1603,104 +1796,14 @@ ${table}
                     throw new Error(result.error || 'Erro desconhecido');
                 }
             } catch (error) {
-                showNotification('Erro ao salvar na nuvem: ' + error.message, 'error');
+                console.error('Erro ao salvar na nuvem:', error);
+                showNotification('Erro ao salvar na nuvem', 'error');
             }
         }
 
-        async function loadCloudAnalyses(mode) {
-            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            const listId = mode === 'compare' ? 'compareAnalysesList' : 'simpleAnalysesList';
-            
-            if (!url) {
-                document.getElementById(listId).innerHTML = '<p class="text-sm text-slate-400 text-center">URL não configurada</p>';
-                return;
-            }
-            
-            try {
-                const response = await fetch(url + '?action=list');
-                const analyses = await response.json();
-                
-                if (!Array.isArray(analyses) || analyses.length === 0) {
-                    document.getElementById(listId).innerHTML = '<p class="text-sm text-slate-400 text-center">Nenhuma análise salva</p>';
-                    return;
-                }
-                
-                let html = '';
-                analyses.slice(0, 5).forEach(a => {
-                    const date = new Date(a.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                    html += `
-                        <div class="flex items-center justify-between p-3 bg-white rounded-xl border hover:shadow-md transition">
-                            <div class="flex-1 min-w-0">
-                                <p class="font-medium text-slate-800 truncate">${a.name || 'Sem nome'}</p>
-                                <p class="text-xs text-slate-400">${a.itemCount || 0} itens | ${date}</p>
-                            </div>
-                            <div class="flex gap-2 ml-2">
-                                <button onclick="loadFromCloud('${a.id}', '${mode}')" class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200">Carregar</button>
-                                <button onclick="deleteFromCloud('${a.id}', '${mode}')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                document.getElementById(listId).innerHTML = html;
-            } catch (error) {
-                document.getElementById(listId).innerHTML = '<p class="text-sm text-red-400 text-center">Erro ao carregar</p>';
-            }
-        }
-
-        async function loadFromCloud(id, mode) {
-            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            
-            try {
-                const response = await fetch(url + '?action=load&id=' + id);
-                const result = await response.json();
-                
-                if (result.error) {
-                    showNotification(result.error, 'error');
-                    return;
-                }
-                
-                data = result.data || [];
-                currentData = result.currentData || [];
-                newData = result.newData || [];
-                operationMode = mode;
-                currentFileNames = result.fileNames || result.name || '';
-                
-                document.getElementById('modeSelection').classList.add('hidden');
-                document.getElementById('cloudAnalyses').classList.add('hidden');
-                document.getElementById('localCacheSection').classList.add('hidden');
-                document.getElementById('analysisSection').classList.remove('hidden');
-                
-                if (mode === 'compare') {
-                    document.getElementById('compareSummary').classList.remove('hidden');
-                    updateCompareSummary();
-                }
-                
-                renderAnalysisTable();
-                populateFilters();
-                showNotification('Carregado da nuvem!', 'success');
-            } catch (error) {
-                showNotification('Erro ao carregar: ' + error.message, 'error');
-            }
-        }
-
-        async function deleteFromCloud(id, mode) {
-            if (!confirm('Excluir esta análise da nuvem?')) return;
-            
-            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
-            
-            try {
-                await fetch(url + '?action=delete&id=' + id);
-                loadCloudAnalyses(mode);
-                showNotification('Excluído da nuvem!', 'success');
-            } catch (error) {
-                showNotification('Erro ao excluir', 'error');
-            }
-        }
-
-        // ========== PARÂMETROS DE CÁLCULO ==========
-        function loadCalcParams() {
-            const saved = localStorage.getItem('centralMesh_calcParams');
+        // Parâmetros de Cálculo
+        function loadParams() {
+            const saved = localStorage.getItem('centralMesh_params');
             if (saved) {
                 calcParams = { ...calcParams, ...JSON.parse(saved) };
             }
@@ -1736,9 +1839,10 @@ ${table}
                 divCT: parseFloat(document.getElementById('paramDivCT').value) || 0.9
             };
             
-            localStorage.setItem('centralMesh_calcParams', JSON.stringify(calcParams));
+            localStorage.setItem('centralMesh_params', JSON.stringify(calcParams));
+            saveCalcParamsToCloud(); // Salvar também na nuvem
             closeCalcConfig();
-            showNotification('Parâmetros salvos!', 'success');
+            showNotification('Parâmetros salvos localmente e na nuvem!', 'success');
         }
 
         function resetParams() {
@@ -1753,10 +1857,11 @@ ${table}
             document.getElementById('paramDivCT').value = 0.9;
         }
 
-        // ========== SIMULADOR ==========
+        // Simulador
         function openSimulator() {
             document.getElementById('simulatorModal').classList.remove('hidden');
-            calculateSimulation();
+            document.getElementById('simPrice').value = '';
+            document.getElementById('simResults').innerHTML = '';
         }
 
         function closeSimulator() {
@@ -1785,17 +1890,12 @@ ${table}
             document.getElementById('simResults').innerHTML = results.map(r => `
                 <div class="bg-gradient-to-br ${r.color} rounded-xl p-4 text-center text-white shadow-lg">
                     <p class="text-xs font-medium opacity-80">${r.label}</p>
-                    <p class="text-xl font-bold mt-1">${formatNumber(r.value)}</p>
+                    <p class="text-xl font-bold mt-1">${formatNum(r.value)}</p>
                 </div>
             `).join('');
         }
 
-        // ========== UTILITÁRIOS ==========
-        function formatNumber(value) {
-            if (value === null || value === undefined || isNaN(value)) return '-';
-            return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
+        // Download Template
         function downloadTemplate() {
             const wb = XLSX.utils.book_new();
             const data = [
@@ -1806,71 +1906,161 @@ ${table}
             XLSX.writeFile(wb, 'modelo_tabela_precos.xlsx');
         }
 
-        function showAppsScriptCode() {
-            const code = `// Cole este código no Google Apps Script
-// Extensões > Apps Script
+        // ==================== APPS SCRIPT CODE ====================
+        
+        const APPS_SCRIPT_CODE = `// ============================================
+// CENTRAL MESH - API v7.7
+// Use este código em AMBAS as planilhas
+// (Análises Simples e Comparativos)
+// ============================================
 
-const SHEET_NAME = 'Dados';
+const SHEET_DATA = 'Dados';
+const SHEET_CONFIG = 'Config';
 
 function doGet(e) {
   const action = e.parameter.action || 'list';
   
   try {
     let result;
+    
     switch(action) {
-      case 'list': result = listAnalyses(); break;
-      case 'load': result = loadAnalysis(e.parameter.id); break;
-      case 'delete': result = deleteAnalysis(e.parameter.id); break;
-      default: result = { error: 'Ação inválida' };
+      case 'list':
+        result = listAnalyses();
+        break;
+      case 'load':
+        result = loadAnalysis(e.parameter.id);
+        break;
+      case 'delete':
+        result = deleteAnalysis(e.parameter.id);
+        break;
+      case 'loadConfig':
+        result = loadConfig(e.parameter.key);
+        break;
+      default:
+        result = { error: 'Ação GET inválida: ' + action };
     }
-    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
   } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ error: 'GET Error: ' + error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
-    const result = saveAnalysis(payload);
-    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    const action = payload.action || 'save';
+    
+    let result;
+    
+    if (action === 'saveConfig') {
+      result = saveConfig(payload.key, payload.data);
+    } else {
+      result = saveAnalysis(payload);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+      
   } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ error: 'POST Error: ' + error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function ensureSheet() {
+// ========== CONFIGURAÇÕES ==========
+function ensureConfigSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
+  let sheet = ss.getSheetByName(SHEET_CONFIG);
+  
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['ID', 'Nome', 'Arquivos', 'Qtd', 'Data', 'Usuario', 'DataJSON', 'CurrentJSON', 'NewJSON']);
+    sheet = ss.insertSheet(SHEET_CONFIG);
+    sheet.appendRow(['KEY', 'DATA', 'UPDATED']);
+    sheet.getRange(1, 1, 1, 3).setBackground('#4285f4').setFontColor('#ffffff').setFontWeight('bold');
   }
+  
+  return sheet;
+}
+
+function loadConfig(key) {
+  const sheet = ensureConfigSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      return { key: data[i][0], data: data[i][1], updated: data[i][2] };
+    }
+  }
+  
+  return { key: key, data: null };
+}
+
+function saveConfig(key, value) {
+  const sheet = ensureConfigSheet();
+  const data = sheet.getDataRange().getValues();
+  
+  const row = [key, value, new Date().toISOString()];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      sheet.getRange(i + 1, 1, 1, 3).setValues([row]);
+      return { success: true, message: 'Config atualizada!' };
+    }
+  }
+  
+  sheet.appendRow(row);
+  return { success: true, message: 'Config criada!' };
+}
+
+// ========== ANÁLISES ==========
+function ensureDataSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_DATA);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_DATA);
+  }
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['ID', 'Nome', 'Arquivos', 'Qtd Itens', 'Data/Hora', 'Usuário', 'Data JSON', 'CurrentData JSON', 'NewData JSON']);
+    sheet.getRange(1, 1, 1, 9).setBackground('#4285f4').setFontColor('#ffffff').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  
   return sheet;
 }
 
 function listAnalyses() {
-  const sheet = ensureSheet();
+  const sheet = ensureDataSheet();
   const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) return [];
+  
   const analyses = [];
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0]) {
-      analyses.push({
-        id: data[i][0],
-        name: data[i][1],
-        fileNames: data[i][2],
-        itemCount: data[i][3],
-        timestamp: data[i][4],
-        userName: data[i][5]
-      });
-    }
+    if (!data[i][0]) continue;
+    
+    analyses.push({
+      id: data[i][0],
+      name: data[i][1],
+      fileNames: data[i][2],
+      itemCount: data[i][3],
+      timestamp: data[i][4],
+      userName: data[i][5]
+    });
   }
-  return analyses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  analyses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return analyses;
 }
 
 function loadAnalysis(id) {
-  const sheet = ensureSheet();
+  const sheet = ensureDataSheet();
   const data = sheet.getDataRange().getValues();
+  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       return {
@@ -1880,61 +2070,283 @@ function loadAnalysis(id) {
         itemCount: data[i][3],
         timestamp: data[i][4],
         userName: data[i][5],
-        data: JSON.parse(data[i][6] || '[]'),
-        currentData: JSON.parse(data[i][7] || '[]'),
-        newData: JSON.parse(data[i][8] || '[]')
+        data: data[i][6] ? JSON.parse(data[i][6]) : [],
+        currentData: data[i][7] ? JSON.parse(data[i][7]) : [],
+        newData: data[i][8] ? JSON.parse(data[i][8]) : []
       };
     }
   }
-  return { error: 'Não encontrada' };
+  
+  return { error: 'Análise não encontrada' };
 }
 
-function saveAnalysis(p) {
-  const sheet = ensureSheet();
-  const id = p.id || Utilities.getUuid();
-  const row = [id, p.name || '', p.fileNames || '', p.itemCount || 0, new Date().toISOString(), p.userName || '', JSON.stringify(p.data || []), JSON.stringify(p.currentData || []), JSON.stringify(p.newData || [])];
+function saveAnalysis(payload) {
+  const sheet = ensureDataSheet();
+  
+  const id = payload.id || Utilities.getUuid();
+  const row = [
+    id,
+    payload.name || payload.fileNames || 'Sem nome',
+    payload.fileNames || '',
+    payload.itemCount || 0,
+    new Date().toISOString(),
+    payload.userName || 'Anônimo',
+    JSON.stringify(payload.data || []),
+    JSON.stringify(payload.currentData || []),
+    JSON.stringify(payload.newData || [])
+  ];
   
   const data = sheet.getDataRange().getValues();
+  let found = false;
+  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
-      return { success: true, id: id };
+      found = true;
+      break;
     }
   }
-  sheet.appendRow(row);
+  
+  if (!found) {
+    sheet.appendRow(row);
+  }
+  
   return { success: true, id: id };
 }
 
 function deleteAnalysis(id) {
-  const sheet = ensureSheet();
+  const sheet = ensureDataSheet();
   const data = sheet.getDataRange().getValues();
+  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       sheet.deleteRow(i + 1);
       return { success: true };
     }
   }
-  return { error: 'Não encontrada' };
+  
+  return { error: 'Análise não encontrada' };
+}
+
+// Função de teste - execute no editor para verificar
+function testar() {
+  Logger.log('Central Mesh API v7.7 - OK!');
+  Logger.log('Planilha: ' + SpreadsheetApp.getActiveSpreadsheet().getName());
+  return { status: 'OK', version: '7.7' };
 }`;
+
+        function showAppsScriptCode() {
+            document.getElementById('appsScriptCode').value = APPS_SCRIPT_CODE;
+            document.getElementById('appsScriptModal').classList.remove('hidden');
+        }
+
+        function closeAppsScriptModal() {
+            document.getElementById('appsScriptModal').classList.add('hidden');
+        }
+
+        function copyAppsScriptCode() {
+            const code = document.getElementById('appsScriptCode');
+            code.select();
+            document.execCommand('copy');
+            showNotification('Código copiado! Cole no Google Apps Script.', 'success');
+        }
+
+        // ==================== FUNÇÕES DE NUVEM ====================
+        
+        // Carregar análises da nuvem
+        async function loadCloudAnalyses() {
+            const simpleUrl = CLOUD_CONFIG.URL_SIMPLE;
+            const compareUrl = CLOUD_CONFIG.URL_COMPARE;
             
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                    <div class="p-6 border-b flex justify-between items-center">
-                        <h3 class="text-xl font-bold">📜 Código do Google Apps Script</h3>
-                        <button onclick="this.closest('.fixed').remove()" class="text-2xl text-slate-400 hover:text-slate-600">&times;</button>
-                    </div>
-                    <div class="p-6">
-                        <p class="text-sm text-slate-600 mb-4">Cole este código em <strong>Extensões → Apps Script</strong> da sua planilha Google Sheets. Depois implante como Web App.</p>
-                        <div class="relative">
-                            <button onclick="navigator.clipboard.writeText(this.nextElementSibling.textContent); this.textContent='✓ Copiado!'; setTimeout(() => this.textContent='📋 Copiar', 2000)" class="absolute top-2 right-2 px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">📋 Copiar</button>
-                            <pre class="bg-slate-900 text-green-400 p-4 rounded-xl overflow-x-auto text-xs">${code}</pre>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
+            if (!simpleUrl && !compareUrl) return;
+            
+            try {
+                let html = '';
+                
+                // Carregar análises simples
+                if (simpleUrl) {
+                    try {
+                        const response = await fetch(simpleUrl + '?action=list');
+                        const analyses = await response.json();
+                        if (Array.isArray(analyses) && analyses.length > 0) {
+                            html += `<div class="mb-4"><h4 class="text-sm font-bold text-blue-700 mb-2">📊 Análises Simples na Nuvem</h4>`;
+                            analyses.slice(0, 5).forEach(a => {
+                                const date = new Date(a.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                html += `
+                                    <div class="glass-card rounded-lg p-3 mb-2 border-l-4 border-blue-500">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-medium text-blue-800 text-sm">${a.name || 'Análise'}</p>
+                                                <p class="text-xs text-slate-500">${a.itemCount || 0} itens | ${date} | ${a.userName || 'Anônimo'}</p>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button onclick="loadFromCloud('${a.id}', 'simple')" class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Carregar</button>
+                                                <button onclick="deleteFromCloud('${a.id}', 'simple')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                        }
+                    } catch (e) {
+                        console.log('Erro ao carregar análises simples:', e);
+                    }
+                }
+                
+                // Carregar comparativos
+                if (compareUrl) {
+                    try {
+                        const response = await fetch(compareUrl + '?action=list');
+                        const analyses = await response.json();
+                        if (Array.isArray(analyses) && analyses.length > 0) {
+                            html += `<div class="mb-4"><h4 class="text-sm font-bold text-emerald-700 mb-2">🔄 Comparativos na Nuvem</h4>`;
+                            analyses.slice(0, 5).forEach(a => {
+                                const date = new Date(a.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                html += `
+                                    <div class="glass-card rounded-lg p-3 mb-2 border-l-4 border-emerald-500">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-medium text-emerald-800 text-sm">${a.name || 'Comparativo'}</p>
+                                                <p class="text-xs text-slate-500">${a.itemCount || 0} itens | ${date} | ${a.userName || 'Anônimo'}</p>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button onclick="loadFromCloud('${a.id}', 'compare')" class="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700">Carregar</button>
+                                                <button onclick="deleteFromCloud('${a.id}', 'compare')" class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200">🗑️</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                        }
+                    } catch (e) {
+                        console.log('Erro ao carregar comparativos:', e);
+                    }
+                }
+                
+                if (html) {
+                    // Adicionar seção de nuvem na tela inicial
+                    let cloudSection = document.getElementById('cloudCacheSection');
+                    if (!cloudSection) {
+                        cloudSection = document.createElement('div');
+                        cloudSection.id = 'cloudCacheSection';
+                        cloudSection.className = 'mt-10';
+                        cloudSection.innerHTML = `<h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">☁️ Análises na Nuvem</h3><div id="cloudCacheList"></div>`;
+                        document.getElementById('localCacheSection').after(cloudSection);
+                    }
+                    cloudSection.classList.remove('hidden');
+                    document.getElementById('cloudCacheList').innerHTML = html;
+                }
+            } catch (error) {
+                console.log('Erro geral ao carregar nuvem:', error);
+            }
+        }
+
+        // Carregar análise específica da nuvem
+        async function loadFromCloud(id, mode) {
+            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
+            if (!url) return;
+            
+            try {
+                showNotification('Carregando da nuvem...', 'info');
+                const response = await fetch(url + '?action=load&id=' + id);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                data = result.data || [];
+                currentData = result.currentData || [];
+                newData = result.newData || [];
+                operationMode = mode;
+                
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('analysisSection').classList.remove('hidden');
+                
+                if (mode === 'compare') {
+                    document.getElementById('compareSummary').classList.remove('hidden');
+                    updateCompareSummary();
+                }
+                
+                populateFilters();
+                renderAnalysis();
+                showNotification('Carregado da nuvem!', 'success');
+            } catch (error) {
+                showNotification('Erro ao carregar: ' + error.message, 'error');
+            }
+        }
+
+        // Deletar análise da nuvem
+        async function deleteFromCloud(id, mode) {
+            if (!confirm('Excluir esta análise da nuvem?')) return;
+            
+            const url = mode === 'compare' ? CLOUD_CONFIG.URL_COMPARE : CLOUD_CONFIG.URL_SIMPLE;
+            if (!url) return;
+            
+            try {
+                const response = await fetch(url + '?action=delete&id=' + id);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Excluído da nuvem!', 'success');
+                    loadCloudAnalyses();
+                } else {
+                    throw new Error(result.error || 'Erro desconhecido');
+                }
+            } catch (error) {
+                showNotification('Erro ao excluir: ' + error.message, 'error');
+            }
+        }
+
+        // Carregar parâmetros de cálculo da nuvem
+        async function loadCalcParamsFromCloud() {
+            const url = CLOUD_CONFIG.URL_SIMPLE;
+            if (!url) return;
+            
+            try {
+                const response = await fetch(url + '?action=loadConfig&key=calcParams');
+                const result = await response.json();
+                
+                if (result && result.data && typeof result.data === 'string') {
+                    const cloudParams = JSON.parse(result.data);
+                    if (cloudParams && cloudParams.f1) {
+                        calcParams = { ...calcParams, ...cloudParams };
+                        localStorage.setItem('centralMesh_params', JSON.stringify(calcParams));
+                        console.log('✅ Parâmetros carregados da nuvem:', calcParams);
+                    }
+                }
+            } catch (error) {
+                console.log('Parâmetros não encontrados na nuvem, usando locais');
+            }
+        }
+
+        // Salvar parâmetros na nuvem
+        async function saveCalcParamsToCloud() {
+            const url = CLOUD_CONFIG.URL_SIMPLE;
+            if (!url) return;
+            
+            try {
+                const payload = {
+                    action: 'saveConfig',
+                    key: 'calcParams',
+                    data: JSON.stringify(calcParams)
+                };
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ Parâmetros salvos na nuvem');
+                }
+            } catch (error) {
+                console.log('Erro ao salvar parâmetros na nuvem:', error);
+            }
         }
     </script>
 </body>
