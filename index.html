@@ -226,7 +226,7 @@
                         Apps Script
                     </button>
                     
-                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.7.1</div>
+                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.7.2</div>
                 </div>
             </div>
         </div>
@@ -242,7 +242,7 @@
         <script>
             const CLOUD_CONFIG = {
                 // Cole aqui a URL da planilha de ANÁLISES SIMPLES
-                URL_SIMPLE: 'https://script.google.com/macros/library/d/1R9MVB95IoF-3HgrTAYHE2KzVxXCx41LwxfhlIhlufL2gOZkjocrEe5V6/1',
+                URL_SIMPLE: 'https://script.google.com/macros/s/AKfycbycuH6_t7JkVhfSy0k8sqadVtUiJoLfaiROy0l8_3b7sEfveMFQwrzV-K_RoP8V8eSxSg/exec',
                 
                 // Cole aqui a URL da planilha de COMPARATIVOS
                 URL_COMPARE: 'https://script.google.com/macros/s/AKfycbwvhbLID6yWEQqnLkBWORUR7GNMQdkjhXs4vK4JQF-FPOImduOG5pOu9tIuRvPVevolcg/exec',
@@ -1371,7 +1371,7 @@
             }
             
             document.getElementById('reportDate').innerHTML = `Gerado em: ${dateStr}${variationHTML}`;
-            document.getElementById('reportFooterDate').textContent = `Publicado em: ${dateStr} | Versão 7.7`;
+            document.getElementById('reportFooterDate').textContent = `Publicado em: ${dateStr} | Versão 7.7.2`;
             
             // Filtros da publicação
             const materials = [...new Set(data.map(i => i.material))].sort();
@@ -1506,36 +1506,39 @@
             
             const tableHTML = document.getElementById('reportTable').outerHTML;
             
-            // Gerar resumos por material e malha
-            const byMaterial = {};
-            const byMesh = {};
-            data.filter(i => i.changeType !== 'removed').forEach(item => {
-                if (!byMaterial[item.material]) byMaterial[item.material] = { count: 0, variations: [] };
-                byMaterial[item.material].count++;
-                if (item.variation !== null) byMaterial[item.material].variations.push(item.variation);
-                
-                if (!byMesh[item.mesh]) byMesh[item.mesh] = { count: 0, variations: [] };
-                byMesh[item.mesh].count++;
-                if (item.variation !== null) byMesh[item.mesh].variations.push(item.variation);
-            });
-            
+            // Gerar resumos por material e malha - APENAS para modo completo
             let materialSummaryHTML = '';
-            Object.entries(byMaterial).sort((a,b) => b[1].count - a[1].count).forEach(([mat, info]) => {
-                const avgVar = info.variations.length > 0 ? info.variations.reduce((a,b) => a+b, 0) / info.variations.length : 0;
-                const icon = avgVar >= 0 ? '▲' : '▼';
-                const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
-                const varText = info.variations.length > 0 ? `<span class="${colorClass} font-bold ml-2">${icon} ${avgVar >= 0 ? '+' : ''}${avgVar.toFixed(1)}%</span>` : '';
-                materialSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">${mat}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
-            });
-            
             let meshSummaryHTML = '';
-            Object.entries(byMesh).sort((a,b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([mesh, info]) => {
-                const avgVar = info.variations.length > 0 ? info.variations.reduce((a,b) => a+b, 0) / info.variations.length : 0;
-                const icon = avgVar >= 0 ? '▲' : '▼';
-                const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
-                const varText = info.variations.length > 0 ? `<span class="${colorClass} font-bold ml-2">${icon} ${avgVar >= 0 ? '+' : ''}${avgVar.toFixed(1)}%</span>` : '';
-                meshSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">Malha ${mesh}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
-            });
+            
+            if (!isVendors) {
+                const byMaterial = {};
+                const byMesh = {};
+                data.filter(i => i.changeType !== 'removed').forEach(item => {
+                    if (!byMaterial[item.material]) byMaterial[item.material] = { count: 0, variations: [] };
+                    byMaterial[item.material].count++;
+                    if (item.variation !== null) byMaterial[item.material].variations.push(item.variation);
+                    
+                    if (!byMesh[item.mesh]) byMesh[item.mesh] = { count: 0, variations: [] };
+                    byMesh[item.mesh].count++;
+                    if (item.variation !== null) byMesh[item.mesh].variations.push(item.variation);
+                });
+                
+                Object.entries(byMaterial).sort((a,b) => b[1].count - a[1].count).forEach(([mat, info]) => {
+                    const avgVar = info.variations.length > 0 ? info.variations.reduce((a,b) => a+b, 0) / info.variations.length : 0;
+                    const icon = avgVar >= 0 ? '▲' : '▼';
+                    const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
+                    const varText = info.variations.length > 0 ? `<span class="${colorClass} font-bold ml-2">${icon} ${avgVar >= 0 ? '+' : ''}${avgVar.toFixed(1)}%</span>` : '';
+                    materialSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">${mat}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
+                });
+                
+                Object.entries(byMesh).sort((a,b) => parseFloat(a[0]) - parseFloat(b[0])).forEach(([mesh, info]) => {
+                    const avgVar = info.variations.length > 0 ? info.variations.reduce((a,b) => a+b, 0) / info.variations.length : 0;
+                    const icon = avgVar >= 0 ? '▲' : '▼';
+                    const colorClass = avgVar >= 0 ? 'text-red-600' : 'text-emerald-600';
+                    const varText = info.variations.length > 0 ? `<span class="${colorClass} font-bold ml-2">${icon} ${avgVar >= 0 ? '+' : ''}${avgVar.toFixed(1)}%</span>` : '';
+                    meshSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">Malha ${mesh}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
+                });
+            }
             
             // Gerar tabela HTML para vendedores (sem colunas $/m², CT CRT, CT ROL)
             let vendorsTableHTML = tableHTML;
@@ -1562,8 +1565,10 @@
             
             const finalTableHTML = isVendors ? vendorsTableHTML : tableHTML;
             
-            // Seções de resumo (só para modo completo)
-            const summarySection = isVendors ? '' : `
+            // Seções de resumo - APENAS para modo completo, NÃO para vendedores
+            let summarySection = '';
+            if (!isVendors) {
+                summarySection = `
         <!-- Resumos por Material e Malha -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
             <div class="summary-card">
@@ -1575,6 +1580,7 @@
                 <div class="max-h-48 overflow-y-auto">${meshSummaryHTML || '<p class="text-slate-400 text-sm">Sem dados</p>'}</div>
             </div>
         </div>`;
+            }
             
             // Variação geral (só para modo completo)
             const variationDisplay = isVendors ? '' : (withVariation.length > 0 ? `<span class="font-bold ${variationClass}">${variationIcon} Variação Geral: ${avgVariation >= 0 ? '+' : ''}${avgVariation.toFixed(1)}%</span>` : '');
@@ -1615,7 +1621,7 @@
         <div class="text-center mb-6 p-8 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl text-white shadow-xl">
             <h1 class="text-3xl font-bold tracking-wide">TABELA DE PREÇOS${isVendors ? ' - VENDEDORES' : ''}</h1>
             <p class="text-xl opacity-90 mt-2">Central Mesh</p>
-            <p class="text-sm opacity-60 mt-3">Publicado em: ${dateStr} às ${timeStr} ${variationDisplay} | Versão 7.7</p>
+            <p class="text-sm opacity-60 mt-3">Publicado em: ${dateStr} às ${timeStr} ${variationDisplay} | Versão 7.7.2</p>
         </div>
         ${summarySection}
         
@@ -1642,7 +1648,7 @@
         <!-- Rodapé -->
         <div class="mt-8 text-center text-slate-400 text-sm">
             <p class="font-medium">Central Mesh - Tabela de Preços Oficial</p>
-            <p class="mt-1 text-xs">Publicado em: ${dateStr} às ${timeStr} | Versão 7.7</p>
+            <p class="mt-1 text-xs">Publicado em: ${dateStr} às ${timeStr} | Versão 7.7.2</p>
         </div>
     </div>
     
