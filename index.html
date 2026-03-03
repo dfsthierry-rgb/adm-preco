@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -227,7 +226,7 @@
                         Apps Script
                     </button>
                     
-                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.7</div>
+                    <div class="bg-white/20 px-3 py-1.5 rounded-lg text-sm font-bold">v7.7.1</div>
                 </div>
             </div>
         </div>
@@ -243,7 +242,7 @@
         <script>
             const CLOUD_CONFIG = {
                 // Cole aqui a URL da planilha de ANÁLISES SIMPLES
-                URL_SIMPLE: 'https://script.google.com/macros/s/AKfycbycuH6_t7JkVhfSy0k8sqadVtUiJoLfaiROy0l8_3b7sEfveMFQwrzV-K_RoP8V8eSxSg/exec',
+                URL_SIMPLE: 'https://script.google.com/macros/library/d/1R9MVB95IoF-3HgrTAYHE2KzVxXCx41LwxfhlIhlufL2gOZkjocrEe5V6/1',
                 
                 // Cole aqui a URL da planilha de COMPARATIVOS
                 URL_COMPARE: 'https://script.google.com/macros/s/AKfycbwvhbLID6yWEQqnLkBWORUR7GNMQdkjhXs4vK4JQF-FPOImduOG5pOu9tIuRvPVevolcg/exec',
@@ -533,8 +532,11 @@
                 <button onclick="publishVendors()" class="btn-success text-white px-4 py-2 rounded-xl text-sm font-medium">
                     👔 Publicação Vendedores
                 </button>
-                <button onclick="copyEmbedCode()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
-                    📋 Copiar Código HTML
+                <button onclick="copyEmbedCode('complete')" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                    📋 Código Completo
+                </button>
+                <button onclick="copyEmbedCode('vendors')" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                    📋 Código Vendedores
                 </button>
                 <button onclick="goToHome()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition">
                     🏠 Início
@@ -1485,7 +1487,8 @@
         }
 
         // Copiar Código HTML
-        function copyEmbedCode() {
+        function copyEmbedCode(mode = 'complete') {
+            const isVendors = mode === 'vendors';
             const now = new Date();
             const dateStr = now.toLocaleDateString('pt-BR');
             const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1534,43 +1537,33 @@
                 meshSummaryHTML += `<div class="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm mb-1"><span class="font-medium">Malha ${mesh}</span><span class="text-xs text-slate-500">${info.count} itens${varText}</span></div>`;
             });
             
-            const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central Mesh - Tabela de Preços</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh; }
-        .glass-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
-        .table-container { max-height: 70vh; overflow: auto; }
-        .table-modern { border-collapse: collapse; width: 100%; }
-        .table-modern th { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; position: sticky; top: 0; z-index: 10; padding: 12px 8px; font-size: 11px; text-transform: uppercase; }
-        .table-modern td { padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
-        .table-modern tbody tr:hover { background-color: rgba(30, 58, 95, 0.05); }
-        .material-316 { background-color: rgba(139, 92, 246, 0.1); border-left: 4px solid #8b5cf6; }
-        .material-304 { background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; }
-        .material-302 { background-color: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; }
-        .material-galv { background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; }
-        .material-carb { background-color: rgba(107, 114, 128, 0.1); border-left: 4px solid #6b7280; }
-        .material-other { background-color: rgba(236, 72, 153, 0.1); border-left: 4px solid #ec4899; }
-        .filter-select { border: 2px solid #e2e8f0; padding: 8px 12px; border-radius: 10px; font-size: 13px; transition: all 0.2s; }
-        .filter-select:focus { border-color: #1e3a5f; box-shadow: 0 0 0 3px rgba(30,58,95,0.1); outline: none; }
-        .summary-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        @media print { .no-print { display: none !important; } body { background: white; } }
-    </style>
-</head>
-<body class="p-4 md:p-6">
-    <div class="max-w-7xl mx-auto">
-        <!-- Cabeçalho -->
-        <div class="text-center mb-6 p-8 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl text-white shadow-xl">
-            <h1 class="text-3xl font-bold tracking-wide">TABELA DE PREÇOS</h1>
-            <p class="text-xl opacity-90 mt-2">Central Mesh</p>
-            <p class="text-sm opacity-60 mt-3">Publicado em: ${dateStr} às ${timeStr} ${withVariation.length > 0 ? `<span class="font-bold ${variationClass}">${variationIcon} Variação Geral: ${avgVariation >= 0 ? '+' : ''}${avgVariation.toFixed(1)}%</span>` : ''} | Versão 7.7</p>
-        </div>
-        
+            // Gerar tabela HTML para vendedores (sem colunas $/m², CT CRT, CT ROL)
+            let vendorsTableHTML = tableHTML;
+            if (isVendors) {
+                // Criar uma versão simplificada da tabela para vendedores
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = tableHTML;
+                const table = tempDiv.querySelector('table');
+                if (table) {
+                    // Remover colunas 6 ($/m²), 13 (CT CRT), 14 (CT ROL) do cabeçalho e linhas
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const cells = row.querySelectorAll('th, td');
+                        // Remover de trás para frente para não afetar os índices
+                        if (cells.length >= 14) {
+                            cells[13]?.remove(); // CT ROL
+                            cells[12]?.remove(); // CT CRT
+                            cells[5]?.remove();  // $/m²
+                        }
+                    });
+                    vendorsTableHTML = table.outerHTML;
+                }
+            }
+            
+            const finalTableHTML = isVendors ? vendorsTableHTML : tableHTML;
+            
+            // Seções de resumo (só para modo completo)
+            const summarySection = isVendors ? '' : `
         <!-- Resumos por Material e Malha -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 no-print">
             <div class="summary-card">
@@ -1581,25 +1574,68 @@
                 <h3 class="font-bold text-slate-700 mb-3 flex items-center gap-2">🔢 Resumo por Malha</h3>
                 <div class="max-h-48 overflow-y-auto">${meshSummaryHTML || '<p class="text-slate-400 text-sm">Sem dados</p>'}</div>
             </div>
+        </div>`;
+            
+            // Variação geral (só para modo completo)
+            const variationDisplay = isVendors ? '' : (withVariation.length > 0 ? `<span class="font-bold ${variationClass}">${variationIcon} Variação Geral: ${avgVariation >= 0 ? '+' : ''}${avgVariation.toFixed(1)}%</span>` : '');
+            
+            const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Mesh - Tabela de Preços${isVendors ? ' (Vendedores)' : ''}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        .table-container { max-height: 80vh; overflow: auto; position: relative; }
+        .table-modern { border-collapse: collapse; width: 100%; }
+        .table-modern thead { position: sticky; top: 0; z-index: 20; }
+        .table-modern th { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); color: white; padding: 12px 8px; font-size: 11px; text-transform: uppercase; white-space: nowrap; }
+        .table-modern td { padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+        .table-modern tbody tr:hover { background-color: rgba(30, 58, 95, 0.05); }
+        .material-316 { background-color: rgba(139, 92, 246, 0.1); border-left: 4px solid #8b5cf6; }
+        .material-304 { background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; }
+        .material-302 { background-color: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; }
+        .material-galv { background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; }
+        .material-carb { background-color: rgba(107, 114, 128, 0.1); border-left: 4px solid #6b7280; }
+        .material-other { background-color: rgba(236, 72, 153, 0.1); border-left: 4px solid #ec4899; }
+        .filter-bar { background: rgba(255,255,255,0.98); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 16px; position: sticky; top: 0; z-index: 30; }
+        .filter-select { border: 2px solid #e2e8f0; padding: 8px 12px; border-radius: 10px; font-size: 13px; transition: all 0.2s; background: white; }
+        .filter-select:focus { border-color: #1e3a5f; box-shadow: 0 0 0 3px rgba(30,58,95,0.1); outline: none; }
+        .summary-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        @media print { .no-print { display: none !important; } body { background: white; } }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Cabeçalho -->
+        <div class="text-center mb-6 p-8 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl text-white shadow-xl">
+            <h1 class="text-3xl font-bold tracking-wide">TABELA DE PREÇOS${isVendors ? ' - VENDEDORES' : ''}</h1>
+            <p class="text-xl opacity-90 mt-2">Central Mesh</p>
+            <p class="text-sm opacity-60 mt-3">Publicado em: ${dateStr} às ${timeStr} ${variationDisplay} | Versão 7.7</p>
         </div>
+        ${summarySection}
         
         <!-- Filtros -->
-        <div class="glass-card rounded-xl p-4 mb-4 shadow-lg no-print">
+        <div class="filter-bar no-print">
             <div class="flex flex-wrap gap-3 items-center">
                 <span class="text-sm font-bold text-slate-600">🔍 Filtrar:</span>
                 <input type="text" id="filterCode" onkeyup="filterTable()" placeholder="Buscar código..." class="filter-select w-36">
                 <select id="filterMat" onchange="filterTable()" class="filter-select"></select>
                 <select id="filterMesh" onchange="filterTable()" class="filter-select"></select>
                 <select id="filterWire" onchange="filterTable()" class="filter-select"></select>
-                <button onclick="clearFilters()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">Limpar</button>
-                <span id="count" class="ml-auto text-sm text-slate-500 font-medium"></span>
+                <button onclick="clearFilters()" class="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 bg-blue-50 rounded-lg hover:bg-blue-100">Limpar</button>
+                <span id="count" class="ml-auto text-sm text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg"></span>
             </div>
         </div>
         
         <!-- Tabela -->
         <div class="glass-card rounded-xl shadow-xl overflow-hidden">
             <div class="table-container">
-                ${tableHTML}
+                ${finalTableHTML}
             </div>
         </div>
         
@@ -1663,7 +1699,7 @@
 </html>`;
             
             navigator.clipboard.writeText(html).then(() => {
-                showNotification('Código HTML copiado com resumos!', 'success');
+                showNotification(isVendors ? 'Código Vendedores copiado!' : 'Código Completo copiado com resumos!', 'success');
             });
         }
 
